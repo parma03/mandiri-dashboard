@@ -1,0 +1,111 @@
+{% extends 'main.html' %}
+{% block title%} {{ session.role }} - Dashboard {%endblock %}
+{% block content%}
+<div class="row">
+    <div class="mb-6 order-0">
+        <div class="card">
+            <div class="d-flex align-items-start row">
+                <div class="card">
+                    <div class="card-widget-separator-wrapper">
+                        <div class="card-body card-widget-separator">
+                            <div class="row gy-4 gy-sm-1">
+                                <div class="col-sm-6 col-lg-3">
+                                    <div
+                                        class="d-flex justify-content-between align-items-center card-widget-1 border-end pb-4 pb-sm-0">
+                                        <div>
+                                            <h4 class="mb-0" id="article-count"></h4>
+                                            <p class="mb-0">Media Online</p>
+                                        </div>
+                                        <div class="avatar me-sm-6">
+                                            <span class="avatar-initial rounded bg-label-secondary text-heading">
+                                                <i class="bx bx-news bx-26px"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <hr class="d-none d-sm-block d-lg-none me-6" />
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <div
+                                        class="d-flex justify-content-between align-items-center card-widget-2 border-end pb-4 pb-sm-0">
+                                        <div>
+                                            <h4 class="mb-0">0</h4>
+                                            <p class="mb-0">Media Cetak</p>
+                                        </div>
+                                        <div class="avatar me-lg-6">
+                                            <span class="avatar-initial rounded bg-label-secondary text-heading">
+                                                <i class="bx bx-world bx-26px"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <hr class="d-none d-sm-block d-lg-none" />
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <!-- <div
+                                        class="d-flex justify-content-between align-items-center border-end pb-4 pb-sm-0 card-widget-3">
+                                        <div>
+                                            <h4 class="mb-0">0</h4>
+                                            <p class="mb-0">Jumlah Engagement</p>
+                                        </div>
+                                        <div class="avatar me-sm-6">
+                                            <span class="avatar-initial rounded bg-label-secondary text-heading">
+                                                <i class="bx bx-stats bx-26px"></i>
+                                            </span>
+                                        </div>
+                                    </div> -->
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <!-- <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h4 class="mb-0">0</h4>
+                                            <p class="mb-0">Jumlah Reach</p>
+                                        </div>
+                                        <div class="avatar">
+                                            <span class="avatar-initial rounded bg-label-secondary text-heading">
+                                                <i class="bx bxs-megaphone bx-26px"></i>
+                                            </span>
+                                        </div>
+                                    </div> -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary mb-3">
+                            Welcome ! {{ session.nama }}🎉
+                            <!-- Display the global daterange -->
+                        </h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-6">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="conventionalMediaTrend" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-6">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="overallSentimentPieChart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="sentimentByGroupBasicChart" style="min-width: 310px; height: 400px; margin: 0 auto">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock %}

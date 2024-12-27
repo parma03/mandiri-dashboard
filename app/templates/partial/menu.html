@@ -1,0 +1,155 @@
+{% block menu %}
+{% if session.role == 'Administrator' %}
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+    <div class="app-brand demo d-flex align-items-center">
+        <a href="{{ url_for('dashboard.index') }}" class="app-brand-link d-flex align-items-center">
+            <span class="app-brand-logo demo">
+                <!-- SVG logo content -->
+            </span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2">sneat</span>
+        </a>
+        <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+            <i class="bx bx-chevron-left bx-sm d-flex align-items-center justify-content-center"></i>
+        </a>
+    </div>
+
+    <div class="menu-inner-shadow"></div>
+
+    <!-- Menu List -->
+    <ul class="menu-inner py-1">
+        <!-- Dashboard Menu -->
+        <li class="menu-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+            <a href="{{ url_for('dashboard.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-smile"></i>
+                <div class="text-truncate">Dashboards</div>
+            </a>
+        </li>
+
+        <!-- Group Section -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Group Section</span>
+        </li>
+        <li class="menu-item {% if request.endpoint == 'group.index' %}active{% endif %}">
+            <a href="{{ url_for('group.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-filter"></i>
+                <div class="text-truncate">Group</div>
+            </a>
+        </li>
+
+        <!-- User Section -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">User Section</span>
+        </li>
+        <li
+            class="menu-item {% if request.endpoint in ['user.admin', 'user.operator', 'user.viewer'] %}active open{% endif %}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-group"></i>
+                <div class="text-truncate">Data User</div>
+            </a>
+            <ul class="menu-sub">
+                <!-- Admin Menu -->
+                <li class="menu-item {% if request.endpoint == 'user.admin' %}active{% endif %}">
+                    <a href="{{ url_for('user.admin') }}" class="menu-link">
+                        <div class="text-truncate">Admin</div>
+                    </a>
+                </li>
+                <!-- Operator Menu -->
+                <li class="menu-item {% if request.endpoint == 'user.operator' %}active{% endif %}">
+                    <a href="{{ url_for('user.operator') }}" class="menu-link">
+                        <div class="text-truncate">Operator</div>
+                    </a>
+                </li>
+                <!-- Viewer Menu -->
+                <li class="menu-item {% if request.endpoint == 'user.viewer' %}active{% endif %}">
+                    <a href="{{ url_for('user.viewer') }}" class="menu-link">
+                        <div class="text-truncate">Viewer</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Article Section -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Article Section</span>
+        </li>
+        <li class="menu-item {% if request.endpoint == 'article.index' %}active{% endif %}">
+            <a href="{{ url_for('article.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-file"></i>
+                <div class="text-truncate">Article</div>
+            </a>
+        </li>
+
+        <!-- Analytic Section -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Analytic Section</span>
+        </li>
+        <li class="menu-item {% if request.endpoint == 'analytic.index' %}active{% endif %}">
+            <a href="{{ url_for('analytic.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-chart"></i>
+                <div class="text-truncate">Analytic</div>
+            </a>
+        </li>
+
+        <!-- Scraping Section -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Scraping Section</span>
+        </li>
+        <li class="menu-item {% if request.endpoint == 'scraping.index' %}active{% endif %}">
+            <a href="{{ url_for('scraping.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-target-lock"></i>
+                <div class="text-truncate">Scraping</div>
+            </a>
+        </li>
+    </ul>
+</aside>
+{% else %}
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+    <div class="app-brand demo d-flex align-items-center">
+        <a href="{{ url_for('dashboard.index') }}" class="app-brand-link d-flex align-items-center">
+            <span class="app-brand-logo demo">
+                <!-- SVG logo content -->
+            </span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2">sneat</span>
+        </a>
+        <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+            <i class="bx bx-chevron-left bx-sm d-flex align-items-center justify-content-center"></i>
+        </a>
+    </div>
+
+    <div class="menu-inner-shadow"></div>
+
+    <!-- Menu List -->
+    <ul class="menu-inner py-1">
+        <!-- Dashboard Menu -->
+        <li class="menu-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+            <a href="{{ url_for('dashboard.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-smile"></i>
+                <div class="text-truncate">Dashboards</div>
+            </a>
+        </li>
+
+        <!-- Article Section -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Article Section</span>
+        </li>
+        <li class="menu-item {% if request.endpoint == 'article.index' %}active{% endif %}">
+            <a href="{{ url_for('article.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-file"></i>
+                <div class="text-truncate">Article</div>
+            </a>
+        </li>
+
+        <!-- Analytic Section -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Analytic Section</span>
+        </li>
+        <li class="menu-item {% if request.endpoint == 'analytic.index' %}active{% endif %}">
+            <a href="{{ url_for('analytic.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-chart"></i>
+                <div class="text-truncate">Analytic</div>
+            </a>
+        </li>
+    </ul>
+</aside>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,682 @@
+{% block script%}
+<script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script src="{{ url_for('static', filename='js/multiselect.js') }}"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.min.css">
+</script>
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.concat.min.js">
+</script>
+<script>
+    $("#myTable").DataTable({
+        fixedHeader: true,
+        fixedColumns: true,
+    });
+    $("#myTable1").DataTable({
+        fixedHeader: true,
+        fixedColumns: true,
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var start = moment();
+        var end = moment();
+
+        function cb(start, end) {
+            $("#reportrange").html(
+                start.format("MMMM D, YYYY") + " - " + end.format("MMMM D, YYYY")
+            );
+            $("#reportrange1").html(
+                start.format("MMMM D, YYYY") + " - " + end.format("MMMM D, YYYY")
+            );
+        }
+
+        $("#reportrange").daterangepicker({
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    Today: [moment(), moment()],
+                    Yesterday: [
+                        moment().subtract(1, "days"),
+                        moment().subtract(1, "days"),
+                    ],
+                    "Last 7 Days": [moment().subtract(6, "days"), moment()],
+                    "Last 30 Days": [moment().subtract(29, "days"), moment()],
+                    "This Month": [
+                        moment().startOf("month"),
+                        moment().endOf("month"),
+                    ],
+                    "Last Month": [
+                        moment().subtract(1, "month").startOf("month"),
+                        moment().subtract(1, "month").endOf("month"),
+                    ],
+                },
+            },
+            cb
+        );
+
+        $("#reportrange1").daterangepicker({
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    Today: [moment(), moment()],
+                    Yesterday: [
+                        moment().subtract(1, "days"),
+                        moment().subtract(1, "days"),
+                    ],
+                    "Last 7 Days": [moment().subtract(6, "days"), moment()],
+                    "Last 30 Days": [moment().subtract(29, "days"), moment()],
+                    "This Month": [
+                        moment().startOf("month"),
+                        moment().endOf("month"),
+                    ],
+                    "Last Month": [
+                        moment().subtract(1, "month").startOf("month"),
+                        moment().subtract(1, "month").endOf("month"),
+                    ],
+                },
+            },
+            cb
+        );
+
+        cb(start, end);
+    });
+</script>
+<script>
+    $(document).ready(function () {
+        // Save date range to local storage
+        $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
+            localStorage.setItem('daterange', picker.startDate.format('MMMM D, YYYY') + ' - ' + picker
+                .endDate.format('MMMM D, YYYY'));
+        });
+
+        // Save multiselect values to local storage
+        $('#group').on('change', function () {
+            const selectedValues = $(this).val();
+            localStorage.setItem('multiselect', JSON.stringify(selectedValues));
+        });
+
+        // Load stored values on page load
+        const storedDaterange = localStorage.getItem('daterange');
+        const storedMultiselect = JSON.parse(localStorage.getItem('multiselect'));
+
+        if (storedDaterange) {
+            $('#reportrange').data('daterangepicker').setStartDate(moment(storedDaterange.split(' - ')[0]));
+            $('#reportrange').data('daterangepicker').setEndDate(moment(storedDaterange.split(' - ')[1]));
+            $('#reportrange').val(storedDaterange);
+        }
+
+        if (storedMultiselect) {
+            $('#group').val(storedMultiselect).trigger('change');
+        }
+
+        $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
+            const daterange = picker.startDate.format('MMMM D, YYYY') + ' - ' + picker.endDate.format(
+                'MMMM D, YYYY');
+            const multiselect = $('#group').val();
+
+            $.ajax({
+                url: '/save_filters',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    daterange,
+                    multiselect
+                }),
+            });
+        });
+
+        $('#group').on('change', function () {
+            const daterange = $('#reportrange').val();
+            const multiselect = $(this).val();
+
+            $.ajax({
+                url: '/save_filters',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    daterange,
+                    multiselect
+                }),
+            });
+        });
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        if ($("#group").length && $("#reportrange").length) {
+            $(document).on("change", "#group, #reportrange", function () {
+                getDataNews();
+            });
+        } else {
+            console.warn("Group or report range elements not found.");
+        }
+
+        getDataNews();
+    });
+
+    function getDataNews() {
+        console.log("scrapeNews triggered");
+        var selectedGroups = $("#group").val();
+        var dateRange = $("#reportrange").text();
+
+        if (!selectedGroups || !dateRange) {
+            console.error("Missing required data:", {
+                selectedGroups,
+                dateRange
+            });
+            return;
+        }
+
+        console.log("Sending request with data:", {
+            groups: selectedGroups,
+            daterange: dateRange
+        });
+        $.ajax({
+            type: "POST",
+            url: "{{ url_for('get_news') }}",
+            data: {
+                "groups[]": selectedGroups,
+                daterange: dateRange
+            },
+            success: function (response) {
+                if (response.status === "success") {
+                    $("#article-count").text(response.count_article);
+
+                    // Hapus DataTable lama jika ada
+                    if ($.fn.DataTable.isDataTable('#myTable')) {
+                        $('#myTable').DataTable().destroy();
+                    }
+
+                    // Kosongkan tabel sebelum mengisi ulang
+                    $('#myTable tbody').empty();
+                    // Isi ulang tabel dengan data_articles
+                    var table = $('#myTable').DataTable({
+                        data: response.data_articles,
+                        columns: [{
+                            data: null,
+                            render: function (data, type, row) {
+                                // Render data sesuai kebutuhan
+                                let sentimentClass =
+                                    "bg-success"; // Default untuk "Positif"
+                                if (row.sentiment === "Netral") {
+                                    sentimentClass = "bg-info";
+                                } else if (row.sentiment === "Negatif") {
+                                    sentimentClass = "bg-danger";
+                                }
+
+                                const truncateText = (text, wordLimit) => {
+                                    if (!text)
+                                        return ""; // Jika teks null atau undefined, kembalikan string kosong
+                                    return text.split(" ").slice(0, wordLimit).join(
+                                        " ") + (text.split(" ").length >
+                                        wordLimit ? "..." : "");
+                                };
+
+                                const formatDate = (dateString) => {
+                                    const date = new Date(dateString);
+                                    const options = {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric"
+                                    };
+                                    return date.toLocaleDateString("en-US",
+                                        options);
+                                };
+
+                                return `
+                                <div class="d-flex row">
+                                    <div class="col-sm-1 text-center text-sm-left">
+                                        <div class="card-body pb-0 ps-10 text-sm-start text-center">
+                                            <img class="w-px-40 rounded-circle" src="${row.img1}" alt="Profile Image" />
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col">
+                                                    <h5 class="card-title text-primary mb-3">${row.title}</h5>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <span class="pull-right"><i class="menu-icon tf-icons bx bx-calendar"></i>${formatDate(row.date)}</span>
+                                                </div>
+                                            </div>
+                                            <span><i class="menu-icon tf-icons bx bx-world"></i>${row.source}</span>
+                                            <span class="badge ${sentimentClass}">${row.sentiment}</span>
+                                            <p class="mb-6">
+                                                 ${truncateText(row.konten, 10)}
+                                            </p>
+                                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                                                <div class="me-2">
+                                                    <span class="badge rounded-pill bg-label-dark">${row.n_group}</span>
+                                                </div>
+                                                <div class="user-progress d-flex align-items-center gap-2">
+                                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#lihatModal${row.id_article}">
+                                                        <span class="tf-icons bx bx-show bx-18px me-2"></span>Detail
+                                                    </button>
+                                                    <form>
+                                                        <input type="hidden" name="id_article" value="${row.id_article}">
+                                                        <select class="form-select" id="exampleFormControlSelect1"
+                                                            name="sentiment" aria-label="Pilih Sentiment"
+                                                            onchange="updateSentiment(this, '${row.id_article}')">
+                                                            <option value="" disabled ${row.sentiment === "" ? "selected" : ""}>Pilih Sentiment</option>
+                                                            <option value="Negatif" ${row.sentiment === "Negatif" ? "selected" : ""}>Negatif</option>
+                                                            <option value="Netral" ${row.sentiment === "Netral" ? "selected" : ""}>Netral</option>
+                                                            <option value="Positif" ${row.sentiment === "Positif" ? "selected" : ""}>Positif</option>
+                                                        </select>
+                                                    </form>
+                                                    <a href="${row.link}" class="btn btn-outline-secondary" target="_blank">
+                                                        <span class="tf-icons bx bx-link-external bx-18px me-2"></span>Kunjungi
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Modal Template -->
+                                <div class="modal fade" id="lihatModal${ row.id_article }" tabindex="-1" aria-labelledby="lihatModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered modal-xl">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <!-- Image -->
+                                                    <div class="col-md-6 text-center">
+                                                        <img class="img-fluid rounded" src="${row.img2}" alt="Article Image">
+                                                    </div>
+                                                    <!-- Content -->
+                                                    <div class="col-md-6">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar avatar-xl" >
+                                                                <img src="${row.img1}" alt="Avatar" class="rounded-circle" >
+                                                            </div>
+                                                            <div>
+                                                                <h6 class="mb-0">${row.source}</h6>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <span class="badge bg-light text-dark">${row.type ? row.type : "[]"}</span>
+                                                                    <span class="pull-right"><i class="menu-icon tf-icons bx bx-calendar"></i>${formatDate(row.date)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span class="badge bg-light text-dark">${row.authors}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <h6 class="text-muted">${row.title}</h6>
+                                                        <div class="custom-scrollbar-css p-2" style="height: 300px">
+                                                            <p class="font-italic">${row.konten}</p>
+                                                        </div>
+                                                        <div class="col-md-12 ml-2 mt-3">
+                                                            <span class="badge ${sentimentClass}">${row.sentiment}</span>
+                                                            <span class="badge rounded-pill bg-label-dark">${row.n_group}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                `;
+                            }
+                        }]
+                    });
+                    // Proses data untuk chart
+                    var seriesData = {};
+                    var seriesDataType = {};
+                    var sentimentCounts = {};
+                    var groupSentimentData = {};
+                    var groupTypeCounts = {};
+
+                    const SENTIMENT_COLORS = {
+                        Positif: "#28a745",
+                        Netral: "#6c757d",
+                        Negatif: "#dc3545",
+                    };
+
+                    // artikel
+                    response.data_articles.forEach(function (article) {
+                        if (!seriesData[article.n_group]) {
+                            seriesData[article.n_group] = {};
+                        }
+
+                        if (!seriesData[article.n_group][article.date]) {
+                            seriesData[article.n_group][article.date] = 0;
+                        }
+
+                        if (!seriesDataType[article.type]) {
+                            seriesDataType[article.type] = {};
+                        }
+
+                        if (!seriesDataType[article.type][article.date]) {
+                            seriesDataType[article.type][article.date] = 0;
+                        }
+
+                        if (!sentimentCounts[article.sentiment]) {
+                            sentimentCounts[article.sentiment] = 0;
+                        }
+
+                        if (!groupSentimentData[article.n_group]) {
+                            groupSentimentData[article.n_group] = {
+                                Positif: 0,
+                                Negatif: 0,
+                                Netral: 0,
+                            };
+                        }
+
+                        if (!groupTypeCounts[article.n_group]) {
+                            groupTypeCounts[article.n_group] = {};
+                        }
+
+                        if (!groupTypeCounts[article.n_group][article.type]) {
+                            groupTypeCounts[article.n_group][article.type] = 0;
+                        }
+
+                        seriesData[article.n_group][article.date]++;
+                        seriesDataType[article.type][article.date]++;
+                        sentimentCounts[article.sentiment]++;
+                        groupSentimentData[article.n_group][article.sentiment]++;
+                        groupTypeCounts[article.n_group][article.type]++;
+                    });
+
+                    // Konversi data article untuk Chart
+                    var series = Object.keys(seriesData).map(function (group) {
+                        var data = Object.keys(seriesData[group])
+                            .map(function (date) {
+                                return [Date.parse(date), seriesData[group][date]];
+                            })
+                            .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
+
+                        return {
+                            name: group,
+                            data: data,
+                        };
+                    });
+
+                    var seriest = Object.keys(seriesDataType).map(function (type) {
+                        var datat = Object.keys(seriesDataType[type])
+                            .map(function (date) {
+                                return [Date.parse(date), seriesDataType[type][date]];
+                            })
+                            .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
+
+                        return {
+                            name: type,
+                            data: datat,
+                        };
+                    });
+
+                    var sentimentPieData = Object.keys(sentimentCounts).map(
+                        function (sentiment) {
+                            return {
+                                name: sentiment,
+                                y: sentimentCounts[sentiment],
+                                color: SENTIMENT_COLORS[sentiment],
+                            };
+                        }
+                    );
+
+                    var grouptypes = Object.keys(seriesData);
+                    var groupTypeSeries = Object.keys(groupTypeCounts).flatMap(function (group) {
+                        return Object.keys(groupTypeCounts[group]).map(function (type) {
+                            return {
+                                name: `${group} - ${type}`,
+                                data: [groupTypeCounts[group][type]],
+                            };
+                        });
+                    });
+
+                    var categories = Object.keys(groupSentimentData);
+                    var seriesData = [{
+                            name: "Positif",
+                            color: SENTIMENT_COLORS["Positif"],
+                            data: categories.map((group) => groupSentimentData[group]["Positif"]),
+                        },
+                        {
+                            name: "Negatif",
+                            color: SENTIMENT_COLORS["Negatif"],
+                            data: categories.map((group) => groupSentimentData[group]["Negatif"]),
+                        },
+                        {
+                            name: "Netral",
+                            color: SENTIMENT_COLORS["Netral"],
+                            data: categories.map((group) => groupSentimentData[group]["Netral"]),
+                        },
+                    ];
+
+                    // Render Highcharts Line Chart untuk tren media konvensional
+                    Highcharts.chart("conventionalMediaTrend", {
+                        chart: {
+                            type: "line",
+                        },
+                        title: {
+                            text: "Grafik Tren Media Konvensional",
+                        },
+                        xAxis: {
+                            type: "datetime",
+                            title: {
+                                text: "Tanggal",
+                            },
+                        },
+                        yAxis: {
+                            title: {
+                                text: "Jumlah Artikel",
+                            },
+                        },
+                        tooltip: {
+                            formatter: function () {
+                                return (
+                                    "<b>" +
+                                    this.series.name +
+                                    "</b><br/>" +
+                                    Highcharts.dateFormat("%Y-%m-%d", this.x) +
+                                    ": " +
+                                    this.y +
+                                    " artikel"
+                                );
+                            },
+                        },
+                        plotOptions: {
+                            line: {
+                                dataLabels: {
+                                    enabled: true,
+                                },
+                                enableMouseTracking: true,
+                            },
+                        },
+                        series: seriest,
+                    });
+
+                    // Render Highcharts Line Chart untuk tren grup
+                    Highcharts.chart("groupMediaTrend", {
+                        chart: {
+                            type: "line",
+                        },
+                        title: {
+                            text: "Grafik Tren Group",
+                        },
+                        xAxis: {
+                            type: "datetime",
+                            title: {
+                                text: "Tanggal",
+                            },
+                        },
+                        yAxis: {
+                            title: {
+                                text: "Jumlah Artikel",
+                            },
+                        },
+                        tooltip: {
+                            formatter: function () {
+                                return (
+                                    "<b>" +
+                                    this.series.name +
+                                    "</b><br/>" +
+                                    Highcharts.dateFormat("%Y-%m-%d", this.x) +
+                                    ": " +
+                                    this.y +
+                                    " artikel"
+                                );
+                            },
+                        },
+                        plotOptions: {
+                            line: {
+                                dataLabels: {
+                                    enabled: true,
+                                },
+                                enableMouseTracking: true,
+                            },
+                        },
+                        series: series,
+                    });
+
+                    // Render Highcharts Bar Chart untuk tren berdasarkan type
+                    Highcharts.chart("conventionalGroupType", {
+                        chart: {
+                            type: "bar",
+                        },
+                        title: {
+                            text: "Grafik Topik Berdasarkan Source",
+                            align: "left",
+                        },
+                        xAxis: {
+                            categories: Object.keys(groupTypeCounts),
+                        },
+                        yAxis: {
+                            min: 0,
+                            title: {
+                                text: "Jumlah Artikel",
+                            },
+                        },
+                        legend: {
+                            reversed: true,
+                        },
+                        plotOptions: {
+                            series: {
+                                stacking: "normal",
+                                dataLabels: {
+                                    enabled: true,
+                                },
+                            },
+                        },
+                        series: groupTypeSeries,
+                    });
+
+                    // Render Highcharts Pie Chart
+                    Highcharts.chart("overallSentimentPieChart", {
+                        chart: {
+                            type: "pie",
+                        },
+                        title: {
+                            text: "Overall Sentiment Distribution",
+                        },
+                        tooltip: {
+                            pointFormat: "{series.name}: <b>{point.percentage:.1f}%</b>",
+                        },
+                        plotOptions: {
+                            pie: {
+                                allowPointSelect: true,
+                                cursor: "pointer",
+                                dataLabels: {
+                                    enabled: true,
+                                    format: "<b>{point.name}</b>: {point.percentage:.1f} %",
+                                },
+                            },
+                        },
+                        series: [{
+                            name: "Sentiment",
+                            colorByPoint: true,
+                            data: sentimentPieData,
+                        }, ],
+                    });
+
+                    // Render Highcharts Pie Chart Stacked
+                    Highcharts.chart("sentimentByGroupBasicChart", {
+                        chart: {
+                            type: "column",
+                        },
+                        title: {
+                            text: "Sentiment Distribution by Group",
+                        },
+                        xAxis: {
+                            categories: categories,
+                            title: {
+                                text: "Groups",
+                            },
+                        },
+                        yAxis: {
+                            min: 0,
+                            title: {
+                                text: "Sentiment Count",
+                            },
+                        },
+                        tooltip: {
+                            pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b><br/>',
+                            shared: true,
+                        },
+                        plotOptions: {
+                            column: {
+                                dataLabels: {
+                                    enabled: true,
+                                },
+                            },
+                        },
+                        series: seriesData,
+                    });
+                } else {
+                    alert("Error: " + response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                alert("An error occurred: " + error);
+            },
+        });
+    }
+
+    function updateSentiment(selectElement, articleId) {
+        const sentiment = selectElement.value;
+
+        // Kirim AJAX request ke server
+        fetch("{{ url_for('article.index') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id_article: articleId,
+                    sentiment: sentiment,
+                }),
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {} else {
+                    alert(`Gagal memperbarui sentimen: ${data.error || "Kesalahan tidak diketahui"}`);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                alert("Terjadi kesalahan saat memperbarui sentimen, silakan coba lagi.");
+            });
+    }
+</script>
+
+
+{% endblock %}

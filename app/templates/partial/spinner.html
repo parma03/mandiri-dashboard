@@ -1,0 +1,38 @@
+{% block spinner%}
+<!-- Tambahkan spinner -->
+<div id="loading-spinner1" class="loading-overlay" style="display: none;">
+    <div class="spinner-box">
+        <div class="blue-orbit leo"></div>
+        <div class="green-orbit leo"></div>
+        <div class="red-orbit leo"></div>
+        <div class="white-orbit w1 leo"></div>
+        <div class="white-orbit w2 leo"></div>
+        <div class="white-orbit w3 leo"></div>
+    </div>
+</div>
+
+<div id="loading-spinner" class="loading-overlay">
+    <div class="spinner-box">
+        <div class="blue-orbit leo"></div>
+        <div class="green-orbit leo"></div>
+        <div class="red-orbit leo"></div>
+        <div class="white-orbit w1 leo"></div>
+        <div class="white-orbit w2 leo"></div>
+        <div class="white-orbit w3 leo"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        // Ambil elemen spinner dan konten utama
+        const loadingSpinner = document.getElementById("loading-spinner");
+        const mainContent = document.getElementById("layout-wrapper");
+
+        // Sembunyikan spinner dan tampilkan konten utama
+        setTimeout(() => {
+            loadingSpinner.style.display = "none";
+            mainContent.style.display = "block";
+        }, 1000); // Waktu delay untuk loading (1 detik, bisa disesuaikan)
+    });
+</script>
+{% endblock %}

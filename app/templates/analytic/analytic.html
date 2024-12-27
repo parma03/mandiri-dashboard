@@ -1,0 +1,50 @@
+{% extends 'main.html' %}
+{% block title%} {{ session.role }} - Analytic {%endblock %}
+{% block content%}
+<div class="row">
+    <div class="row mb-6">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="conventionalMediaTrend" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-6">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="groupMediaTrend" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-6">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="overallSentimentPieChart" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="sentimentByGroupBasicChart" style="min-width: 310px; height: 400px; margin: 0 auto">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-6">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-body">
+                    <div id="conventionalGroupType" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock %}

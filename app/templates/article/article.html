@@ -1,0 +1,32 @@
+{% extends 'main.html' %}
+{% block title%} {{ session.role }} - Article {%endblock %}
+{% block content%}
+<div class="card">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-header">Data Article {{ daterange }}</h5>
+
+        <div class="d-flex align-items-center">
+            <button type="button" class="btn btn-primary me-3">
+                <span class="tf-icons bx bx-export bx-22px"></span>
+                Ekspor Data
+            </button>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive pt-0">
+        <table id="myTable" class="datatables-basic table border-top">
+            <thead>
+                <tr>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{%endblock %}

@@ -1,0 +1,237 @@
+{% extends 'main.html' %}
+{% block title%} {{ session.role }} - Admin {%endblock %}
+{% block content%}
+<div class="card">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="card-header">Data Admin</h5>
+        <div class="d-flex align-items-center">
+            <button type="button" class="btn btn-icon btn-outline-primary me-3" data-bs-toggle="modal"
+                data-bs-target="#addModal">
+                <span class="tf-icons bx bx-plus bx-22px"></span>
+            </button>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive pt-0">
+        <table id="myTable1" class="datatables-basic table border-top">
+            <thead>
+                <tr>
+                    <th width="1%">No</th>
+                    <th width="1%">Profile</th>
+                    <th>Nama</th>
+                    <th>Email</th>
+                    <th>Username</th>
+                    <th>Login Status</th>
+                    <th>IP Address</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for admin in admins %}
+                <tr>
+                    <td>{{ loop.index }}.</td>
+                    <td>
+                        <div class="avatar avatar-small">
+                            {% if admin.profile is none %}
+                            <img class="avatar-img rounded-circle"
+                                src="{{ url_for('static', filename='profile/user.png') }}" alt="Default Profile">
+                            {% else %}
+                            <img class="avatar-img rounded-circle"
+                                src="{{ url_for('static', filename='profile/' + admin.profile) }}" alt="Admin Profile">
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ admin.nama }}</td>
+                    <td>{{ admin.email }}</td>
+                    <td>{{ admin.username }}</td>
+                    <td>
+                        {% if admin.login_status == 1 %}
+                        <span class="badge bg-label-success me-1">Online</span>
+                        {% else %}
+                        <span class="badge bg-label-danger me-1">Offline</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ admin.ip_address }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                            data-bs-target="#editModal{{ admin.id_user }}">Edit</button>
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal"
+                            data-bs-target="#deleteModal{{ admin.id_user }}">Delete</button>
+                    </td>
+                </tr>
+                <!-- Edit Modal -->
+                <div class="modal fade" id="editModal{{ admin.id_user }}" tabindex="-1" aria-labelledby="addModal"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel1">
+                                    Update Data {{ admin.nama }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="{{ url_for('user.admin') }}" method="post" enctype="multipart/form-data">
+                                    <div class="modal-body">
+                                        <center>
+                                            <div class="col-md-3">
+                                                {% if admin.profile is none %}
+                                                <img class="card-img card-img-center align-items-center"
+                                                    src="{{ url_for('static', filename='profile/user.png') }}"
+                                                    alt="Default Profile">
+                                                {% else %}
+                                                <img class="card-img card-img-center align-items-center"
+                                                    src="{{ url_for('static', filename='profile/' + admin.profile) }}"
+                                                    alt="Admin Profile">
+                                                {% endif %}
+                                            </div>
+                                        </center>
+                                        <br>
+                                        <div class="form-group">
+                                            <div class="form-floating form-floating-custom mb-3">
+                                                <input type="file" class="form-control" id="floatingInput"
+                                                    name="profile" value="{{ admin.profile }}" />
+                                                <label for="floatingInput">Profile</label>
+                                            </div>
+                                            <div class="form-floating form-floating-custom mb-3">
+                                                <input type="hidden" name="id" value="{{ admin.id_user }}">
+                                                <input type="text" class="form-control" id="floatingInput"
+                                                    placeholder="Masukan Nama " name="nama" value="{{ admin.nama }}"
+                                                    required />
+                                                <label for="floatingInput">Nama</label>
+                                            </div>
+                                            <div class="form-floating form-floating-custom mb-3">
+                                                <input type="email" class="form-control" id="floatingInput"
+                                                    placeholder="Masukan Email" name="email" value="{{ admin.email }}"
+                                                    required />
+                                                <label for="floatingInput">Email</label>
+                                            </div>
+                                            <div class="form-floating form-floating-custom mb-3">
+                                                <input type="text" class="form-control" id="floatingInput"
+                                                    placeholder="Masukan Username" name="username"
+                                                    value="{{ admin.username }}" required />
+                                                <label for="floatingInput">Username</label>
+                                            </div>
+                                            <div
+                                                class="form-floating form-password-toggle form-floating-custom mb-3 position-relative">
+                                                <input type="password" class="form-control" id="floatingPassword"
+                                                    placeholder="Password" name="password" value="{{ admin.password }}"
+                                                    required />
+                                                <label for="floatingPassword">Password</label>
+                                                <!-- Toggle Visibility -->
+                                                <span
+                                                    class="position-absolute top-50 end-0 translate-middle-y me-3 cursor-pointer toggle-password"
+                                                    id="basic-default-password2">
+                                                    <i class="bx bx-hide" id="passwordToggleIcon"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Tutup</button>
+                                        &nbsp;
+                                        <button type="submit" class="btn btn-outline-primary"
+                                            name="edit">Update</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delete Modal -->
+                <div class="modal fade" id="deleteModal{{ admin.id_user }}" tabindex="-1" aria-labelledby="addModal"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel1">
+                                    Delete Data {{ admin.nama }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="{{ url_for('user.admin') }}" method="post" enctype="multipart/form-data">
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <input type="hidden" name="id" value="{{ admin.id_user }}">
+                                            <div class="modal-body">
+                                                <label for="exampleInputEmail1">
+                                                    Yakin Menghapus
+                                                    Data
+                                                    ini?</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Tutup</button>
+                                        &nbsp;
+                                        <button type="submit" class="btn btn-outline-primary"
+                                            name="delete">Delete</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel1">
+                    Tambah Data Admin
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('user.admin') }}" method="post" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <div class="form-floating form-floating-custom mb-3">
+                                <input type="text" class="form-control" id="floatingInput" placeholder="Masukan Nama "
+                                    name="nama" required />
+                                <label for="floatingInput">Nama</label>
+                            </div>
+                            <div class="form-floating form-floating-custom mb-3">
+                                <input type="email" class="form-control" id="floatingInput" placeholder="Masukan Email"
+                                    name="email" required />
+                                <label for="floatingInput">Email</label>
+                            </div>
+                            <div class="form-floating form-floating-custom mb-3">
+                                <input type="text" class="form-control" id="floatingInput"
+                                    placeholder="Masukan Username" name="username" required />
+                                <label for="floatingInput">Username</label>
+                            </div>
+                            <div class="form-floating form-password-toggle form-floating-custom mb-3 position-relative">
+                                <input type="password" class="form-control" id="floatingPassword" placeholder="Password"
+                                    name="password" required />
+                                <label for="floatingPassword">Password</label>
+                                <!-- Toggle Visibility -->
+                                <span
+                                    class="position-absolute top-50 end-0 translate-middle-y me-3 cursor-pointer toggle-password"
+                                    id="basic-default-password2">
+                                    <i class="bx bx-hide" id="passwordToggleIcon"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        &nbsp;
+                        <button type="submit" class="btn btn-outline-primary" name="tambah">Tambah</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock %}

@@ -1,0 +1,67 @@
+{% extends 'main.html' %}
+{% block title%} {{ session.role }} - Scraping {%endblock %}
+{% block content%}
+<div class="container-xxl flex-grow-1 container-p-y d-flex justify-content-center align-items-center">
+    <div class="nav-align-top nav-tabs-shadow mb-6">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link active" role="tab" data-bs-toggle="tab"
+                    data-bs-target="#navs-top-home" aria-controls="navs-top-home" aria-selected="true">
+                    By Filter
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button type="button" class="nav-link" role="tab" data-bs-toggle="tab"
+                    data-bs-target="#navs-top-profile" aria-controls="navs-top-profile" aria-selected="false"
+                    tabindex="-1">
+                    By Link
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade active show" id="navs-top-home" role="tabpanel">
+                <form id="scraping-form" action="{{ url_for('scraping.index') }}" method="post">
+                    <div class="card-body">
+                        <div class="row g-6">
+                            <div class="col">
+                                <div class="mb-4">
+                                    <select name="group" id="group" multiple multiselect-search="true"
+                                        multiselect-select-all="true" multiselect-max-items="3"
+                                        style="min-width: 500px">
+                                        {% for group in groups %}
+                                        <option value="{{ group.nama_group }}" selected>
+                                            {{ group.nama_group }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="mb-4">
+                                    <div class="nav-item d-flex align-items-center me-3">
+                                        <input class="form-control form-control-solid" name="daterange"
+                                            placeholder="Pick date rage" id="reportrange1" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-outline-primary align-items-center"
+                            name="scraping">Scraping</button>
+                    </div>
+                </form>
+            </div>
+            <div class="tab-pane fade" id="navs-top-profile" role="tabpanel">
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('scraping-form').addEventListener('submit', function () {
+        document.getElementById('loading-spinner1').style.display = 'block';
+    });
+</script>
+{%endblock %}

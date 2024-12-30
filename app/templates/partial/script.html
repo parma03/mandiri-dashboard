@@ -22,7 +22,8 @@
 <script
     src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.concat.min.js">
 </script>
-<script>
+
+<script type="text/javascript">
     $("#myTable").DataTable({
         fixedHeader: true,
         fixedColumns: true,
@@ -31,215 +32,146 @@
         fixedHeader: true,
         fixedColumns: true,
     });
-</script>
-<script type="text/javascript">
+
     $(document).ready(function () {
-        var start = moment();
-        var end = moment();
+        let loadingSpinner = $("#loading-spinner");
 
-        function cb(start, end) {
-            $("#reportrange").html(
-                start.format("MMMM D, YYYY") + " - " + end.format("MMMM D, YYYY")
-            );
-            $("#reportrange1").html(
-                start.format("MMMM D, YYYY") + " - " + end.format("MMMM D, YYYY")
-            );
-        }
+        // Initialize date picker
+        function initializeDatePicker() {
+            var start = moment();
+            var end = moment();
 
-        $("#reportrange").daterangepicker({
+            function cb(start, end) {
+                $("#reportrange").val(start.format("MMMM D, YYYY") + " - " + end.format("MMMM D, YYYY"));
+            }
+
+            $("#reportrange").daterangepicker({
                 startDate: start,
                 endDate: end,
                 ranges: {
-                    Today: [moment(), moment()],
-                    Yesterday: [
-                        moment().subtract(1, "days"),
-                        moment().subtract(1, "days"),
-                    ],
-                    "Last 7 Days": [moment().subtract(6, "days"), moment()],
-                    "Last 30 Days": [moment().subtract(29, "days"), moment()],
-                    "This Month": [
-                        moment().startOf("month"),
-                        moment().endOf("month"),
-                    ],
-                    "Last Month": [
-                        moment().subtract(1, "month").startOf("month"),
-                        moment().subtract(1, "month").endOf("month"),
-                    ],
-                },
-            },
-            cb
-        );
+                    'Today': [moment(), moment()],
+                    'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                    'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                    'This Month': [moment().startOf('month'), moment().endOf('month')],
+                    'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1,
+                        'month').endOf('month')]
+                }
+            }, cb);
 
-        $("#reportrange1").daterangepicker({
-                startDate: start,
-                endDate: end,
-                ranges: {
-                    Today: [moment(), moment()],
-                    Yesterday: [
-                        moment().subtract(1, "days"),
-                        moment().subtract(1, "days"),
-                    ],
-                    "Last 7 Days": [moment().subtract(6, "days"), moment()],
-                    "Last 30 Days": [moment().subtract(29, "days"), moment()],
-                    "This Month": [
-                        moment().startOf("month"),
-                        moment().endOf("month"),
-                    ],
-                    "Last Month": [
-                        moment().subtract(1, "month").startOf("month"),
-                        moment().subtract(1, "month").endOf("month"),
-                    ],
-                },
-            },
-            cb
-        );
-
-        cb(start, end);
-    });
-</script>
-<script>
-    $(document).ready(function () {
-        // Save date range to local storage
-        $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
-            localStorage.setItem('daterange', picker.startDate.format('MMMM D, YYYY') + ' - ' + picker
-                .endDate.format('MMMM D, YYYY'));
-        });
-
-        // Save multiselect values to local storage
-        $('#group').on('change', function () {
-            const selectedValues = $(this).val();
-            localStorage.setItem('multiselect', JSON.stringify(selectedValues));
-        });
-
-        // Load stored values on page load
-        const storedDaterange = localStorage.getItem('daterange');
-        const storedMultiselect = JSON.parse(localStorage.getItem('multiselect'));
-
-        if (storedDaterange) {
-            $('#reportrange').data('daterangepicker').setStartDate(moment(storedDaterange.split(' - ')[0]));
-            $('#reportrange').data('daterangepicker').setEndDate(moment(storedDaterange.split(' - ')[1]));
-            $('#reportrange').val(storedDaterange);
+            return {
+                start,
+                end,
+                cb
+            };
         }
 
-        if (storedMultiselect) {
-            $('#group').val(storedMultiselect).trigger('change');
+        // Load stored filters and fetch data
+        function loadStoredFilters() {
+            const storedDaterange = localStorage.getItem('daterange');
+            const storedMultiselect = JSON.parse(localStorage.getItem('multiselect'));
+
+            if (storedDaterange) {
+                const dates = storedDaterange.split(' - ');
+                $('#reportrange').data('daterangepicker').setStartDate(moment(dates[0]));
+                $('#reportrange').data('daterangepicker').setEndDate(moment(dates[1]));
+                $('#reportrange').val(storedDaterange);
+            }
+
+            if (storedMultiselect) {
+                $('#group').val(storedMultiselect);
+            }
+
+            // Fetch data with stored filters
+            getDataNews();
         }
 
-        $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
-            const daterange = picker.startDate.format('MMMM D, YYYY') + ' - ' + picker.endDate.format(
-                'MMMM D, YYYY');
-            const multiselect = $('#group').val();
+        // Save filters
+        function saveFilters(daterange, multiselect) {
+            localStorage.setItem('daterange', daterange);
+            localStorage.setItem('multiselect', JSON.stringify(multiselect));
 
             $.ajax({
-                url: '/save_filters',
+                url: "{{ url_for('save_filters') }}",
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
                     daterange,
                     multiselect
-                }),
+                })
             });
-        });
+        }
 
-        $('#group').on('change', function () {
-            const daterange = $('#reportrange').val();
-            const multiselect = $(this).val();
+        function getDataNews() {
+            const selectedGroups = $("#group").val();
+            const dateRange = $("#reportrange").val();
+
+            if (!selectedGroups || !dateRange) {
+                console.error("Missing required data:", {
+                    selectedGroups,
+                    dateRange
+                });
+                return;
+            }
+
+            loadingSpinner.show();
 
             $.ajax({
-                url: '/save_filters',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    daterange,
-                    multiselect
-                }),
-            });
-        });
-    });
-</script>
-<script type="text/javascript">
-    $(document).ready(function () {
-        if ($("#group").length && $("#reportrange").length) {
-            $(document).on("change", "#group, #reportrange", function () {
-                getDataNews();
-            });
-        } else {
-            console.warn("Group or report range elements not found.");
-        }
+                type: "POST",
+                url: "{{ url_for('get_news') }}",
+                data: {
+                    "groups[]": selectedGroups,
+                    daterange: dateRange
+                },
+                success: function (response) {
+                    if (response.status === "success") {
+                        $("#article-count").text(response.count_article);
 
-        getDataNews();
-    });
+                        // Hapus DataTable lama jika ada
+                        if ($.fn.DataTable.isDataTable('#myTable')) {
+                            $('#myTable').DataTable().destroy();
+                        }
 
-    function getDataNews() {
-        console.log("scrapeNews triggered");
-        var selectedGroups = $("#group").val();
-        var dateRange = $("#reportrange").text();
+                        // Kosongkan tabel sebelum mengisi ulang
+                        $('#myTable tbody').empty();
+                        // Isi ulang tabel dengan data_articles
+                        var table = $('#myTable').DataTable({
+                            data: response.data_articles,
+                            columns: [{
+                                data: null,
+                                render: function (data, type, row) {
+                                    // Render data sesuai kebutuhan
+                                    let sentimentClass =
+                                        "bg-success"; // Default untuk "Positif"
+                                    if (row.sentiment === "Netral") {
+                                        sentimentClass = "bg-info";
+                                    } else if (row.sentiment === "Negatif") {
+                                        sentimentClass = "bg-danger";
+                                    }
 
-        if (!selectedGroups || !dateRange) {
-            console.error("Missing required data:", {
-                selectedGroups,
-                dateRange
-            });
-            return;
-        }
-
-        console.log("Sending request with data:", {
-            groups: selectedGroups,
-            daterange: dateRange
-        });
-        $.ajax({
-            type: "POST",
-            url: "{{ url_for('get_news') }}",
-            data: {
-                "groups[]": selectedGroups,
-                daterange: dateRange
-            },
-            success: function (response) {
-                if (response.status === "success") {
-                    $("#article-count").text(response.count_article);
-
-                    // Hapus DataTable lama jika ada
-                    if ($.fn.DataTable.isDataTable('#myTable')) {
-                        $('#myTable').DataTable().destroy();
-                    }
-
-                    // Kosongkan tabel sebelum mengisi ulang
-                    $('#myTable tbody').empty();
-                    // Isi ulang tabel dengan data_articles
-                    var table = $('#myTable').DataTable({
-                        data: response.data_articles,
-                        columns: [{
-                            data: null,
-                            render: function (data, type, row) {
-                                // Render data sesuai kebutuhan
-                                let sentimentClass =
-                                    "bg-success"; // Default untuk "Positif"
-                                if (row.sentiment === "Netral") {
-                                    sentimentClass = "bg-info";
-                                } else if (row.sentiment === "Negatif") {
-                                    sentimentClass = "bg-danger";
-                                }
-
-                                const truncateText = (text, wordLimit) => {
-                                    if (!text)
-                                        return ""; // Jika teks null atau undefined, kembalikan string kosong
-                                    return text.split(" ").slice(0, wordLimit).join(
-                                        " ") + (text.split(" ").length >
-                                        wordLimit ? "..." : "");
-                                };
-
-                                const formatDate = (dateString) => {
-                                    const date = new Date(dateString);
-                                    const options = {
-                                        day: "numeric",
-                                        month: "short",
-                                        year: "numeric"
+                                    const truncateText = (text, wordLimit) => {
+                                        if (!text)
+                                            return ""; // Jika teks null atau undefined, kembalikan string kosong
+                                        return text.split(" ").slice(0,
+                                            wordLimit).join(
+                                            " ") + (text.split(" ")
+                                            .length >
+                                            wordLimit ? "..." : "");
                                     };
-                                    return date.toLocaleDateString("en-US",
-                                        options);
-                                };
 
-                                return `
+                                    const formatDate = (dateString) => {
+                                        const date = new Date(dateString);
+                                        const options = {
+                                            day: "numeric",
+                                            month: "short",
+                                            year: "numeric"
+                                        };
+                                        return date.toLocaleDateString(
+                                            "en-US",
+                                            options);
+                                    };
+
+                                    return `
                                 <div class="d-flex row">
                                     <div class="col-sm-1 text-center text-sm-left">
                                         <div class="card-body pb-0 ps-10 text-sm-start text-center">
@@ -336,347 +268,403 @@
                                     </div>
                                 </div>
                                 `;
+                                }
+                            }]
+                        });
+                        // Proses data untuk chart
+                        var seriesData = {};
+                        var seriesDataType = {};
+                        var sentimentCounts = {};
+                        var groupSentimentData = {};
+                        var groupTypeCounts = {};
+
+                        const SENTIMENT_COLORS = {
+                            Positif: "#28a745",
+                            Netral: "#6c757d",
+                            Negatif: "#dc3545",
+                        };
+
+                        // artikel
+                        response.data_articles.forEach(function (article) {
+                            if (!seriesData[article.n_group]) {
+                                seriesData[article.n_group] = {};
                             }
-                        }]
-                    });
-                    // Proses data untuk chart
-                    var seriesData = {};
-                    var seriesDataType = {};
-                    var sentimentCounts = {};
-                    var groupSentimentData = {};
-                    var groupTypeCounts = {};
 
-                    const SENTIMENT_COLORS = {
-                        Positif: "#28a745",
-                        Netral: "#6c757d",
-                        Negatif: "#dc3545",
-                    };
+                            if (!seriesData[article.n_group][article.date]) {
+                                seriesData[article.n_group][article.date] = 0;
+                            }
 
-                    // artikel
-                    response.data_articles.forEach(function (article) {
-                        if (!seriesData[article.n_group]) {
-                            seriesData[article.n_group] = {};
-                        }
+                            if (!seriesDataType[article.type]) {
+                                seriesDataType[article.type] = {};
+                            }
 
-                        if (!seriesData[article.n_group][article.date]) {
-                            seriesData[article.n_group][article.date] = 0;
-                        }
+                            if (!seriesDataType[article.type][article.date]) {
+                                seriesDataType[article.type][article.date] = 0;
+                            }
 
-                        if (!seriesDataType[article.type]) {
-                            seriesDataType[article.type] = {};
-                        }
+                            if (!sentimentCounts[article.sentiment]) {
+                                sentimentCounts[article.sentiment] = 0;
+                            }
 
-                        if (!seriesDataType[article.type][article.date]) {
-                            seriesDataType[article.type][article.date] = 0;
-                        }
+                            if (!groupSentimentData[article.n_group]) {
+                                groupSentimentData[article.n_group] = {
+                                    Positif: 0,
+                                    Negatif: 0,
+                                    Netral: 0,
+                                };
+                            }
 
-                        if (!sentimentCounts[article.sentiment]) {
-                            sentimentCounts[article.sentiment] = 0;
-                        }
+                            if (!groupTypeCounts[article.n_group]) {
+                                groupTypeCounts[article.n_group] = {};
+                            }
 
-                        if (!groupSentimentData[article.n_group]) {
-                            groupSentimentData[article.n_group] = {
-                                Positif: 0,
-                                Negatif: 0,
-                                Netral: 0,
-                            };
-                        }
+                            if (!groupTypeCounts[article.n_group][article.type]) {
+                                groupTypeCounts[article.n_group][article.type] = 0;
+                            }
 
-                        if (!groupTypeCounts[article.n_group]) {
-                            groupTypeCounts[article.n_group] = {};
-                        }
+                            seriesData[article.n_group][article.date]++;
+                            seriesDataType[article.type][article.date]++;
+                            sentimentCounts[article.sentiment]++;
+                            groupSentimentData[article.n_group][article.sentiment]++;
+                            groupTypeCounts[article.n_group][article.type]++;
+                        });
 
-                        if (!groupTypeCounts[article.n_group][article.type]) {
-                            groupTypeCounts[article.n_group][article.type] = 0;
-                        }
+                        // Konversi data article untuk Chart
+                        var series = Object.keys(seriesData).map(function (group) {
+                            var data = Object.keys(seriesData[group])
+                                .map(function (date) {
+                                    return [Date.parse(date), seriesData[group][date]];
+                                })
+                                .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
 
-                        seriesData[article.n_group][article.date]++;
-                        seriesDataType[article.type][article.date]++;
-                        sentimentCounts[article.sentiment]++;
-                        groupSentimentData[article.n_group][article.sentiment]++;
-                        groupTypeCounts[article.n_group][article.type]++;
-                    });
-
-                    // Konversi data article untuk Chart
-                    var series = Object.keys(seriesData).map(function (group) {
-                        var data = Object.keys(seriesData[group])
-                            .map(function (date) {
-                                return [Date.parse(date), seriesData[group][date]];
-                            })
-                            .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
-
-                        return {
-                            name: group,
-                            data: data,
-                        };
-                    });
-
-                    var seriest = Object.keys(seriesDataType).map(function (type) {
-                        var datat = Object.keys(seriesDataType[type])
-                            .map(function (date) {
-                                return [Date.parse(date), seriesDataType[type][date]];
-                            })
-                            .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
-
-                        return {
-                            name: type,
-                            data: datat,
-                        };
-                    });
-
-                    var sentimentPieData = Object.keys(sentimentCounts).map(
-                        function (sentiment) {
                             return {
-                                name: sentiment,
-                                y: sentimentCounts[sentiment],
-                                color: SENTIMENT_COLORS[sentiment],
-                            };
-                        }
-                    );
-
-                    var grouptypes = Object.keys(seriesData);
-                    var groupTypeSeries = Object.keys(groupTypeCounts).flatMap(function (group) {
-                        return Object.keys(groupTypeCounts[group]).map(function (type) {
-                            return {
-                                name: `${group} - ${type}`,
-                                data: [groupTypeCounts[group][type]],
+                                name: group,
+                                data: data,
                             };
                         });
-                    });
 
-                    var categories = Object.keys(groupSentimentData);
-                    var seriesData = [{
-                            name: "Positif",
-                            color: SENTIMENT_COLORS["Positif"],
-                            data: categories.map((group) => groupSentimentData[group]["Positif"]),
-                        },
-                        {
-                            name: "Negatif",
-                            color: SENTIMENT_COLORS["Negatif"],
-                            data: categories.map((group) => groupSentimentData[group]["Negatif"]),
-                        },
-                        {
-                            name: "Netral",
-                            color: SENTIMENT_COLORS["Netral"],
-                            data: categories.map((group) => groupSentimentData[group]["Netral"]),
-                        },
-                    ];
+                        var seriest = Object.keys(seriesDataType).map(function (type) {
+                            var datat = Object.keys(seriesDataType[type])
+                                .map(function (date) {
+                                    return [Date.parse(date), seriesDataType[type][
+                                        date
+                                    ]];
+                                })
+                                .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
 
-                    // Render Highcharts Line Chart untuk tren media konvensional
-                    Highcharts.chart("conventionalMediaTrend", {
-                        chart: {
-                            type: "line",
-                        },
-                        title: {
-                            text: "Grafik Tren Media Konvensional",
-                        },
-                        xAxis: {
-                            type: "datetime",
-                            title: {
-                                text: "Tanggal",
+                            return {
+                                name: type,
+                                data: datat,
+                            };
+                        });
+
+                        var sentimentPieData = Object.keys(sentimentCounts).map(
+                            function (sentiment) {
+                                return {
+                                    name: sentiment,
+                                    y: sentimentCounts[sentiment],
+                                    color: SENTIMENT_COLORS[sentiment],
+                                };
+                            }
+                        );
+
+                        var grouptypes = Object.keys(seriesData);
+                        var groupTypeSeries = Object.keys(groupTypeCounts).flatMap(function (
+                            group) {
+                            return Object.keys(groupTypeCounts[group]).map(function (type) {
+                                return {
+                                    name: `${group} - ${type}`,
+                                    data: [groupTypeCounts[group][type]],
+                                };
+                            });
+                        });
+
+                        var categories = Object.keys(groupSentimentData);
+                        var seriesData = [{
+                                name: "Positif",
+                                color: SENTIMENT_COLORS["Positif"],
+                                data: categories.map((group) => groupSentimentData[group][
+                                    "Positif"
+                                ]),
                             },
-                        },
-                        yAxis: {
-                            title: {
-                                text: "Jumlah Artikel",
+                            {
+                                name: "Negatif",
+                                color: SENTIMENT_COLORS["Negatif"],
+                                data: categories.map((group) => groupSentimentData[group][
+                                    "Negatif"
+                                ]),
                             },
-                        },
-                        tooltip: {
-                            formatter: function () {
-                                return (
-                                    "<b>" +
-                                    this.series.name +
-                                    "</b><br/>" +
-                                    Highcharts.dateFormat("%Y-%m-%d", this.x) +
-                                    ": " +
-                                    this.y +
-                                    " artikel"
-                                );
+                            {
+                                name: "Netral",
+                                color: SENTIMENT_COLORS["Netral"],
+                                data: categories.map((group) => groupSentimentData[group][
+                                    "Netral"
+                                ]),
                             },
-                        },
-                        plotOptions: {
-                            line: {
-                                dataLabels: {
-                                    enabled: true,
+                        ];
+
+                        // Render Highcharts Line Chart untuk tren media konvensional
+                        if (document.getElementById('conventionalMediaTrend')) {
+                            Highcharts.chart("conventionalMediaTrend", {
+                                chart: {
+                                    type: "line",
                                 },
-                                enableMouseTracking: true,
-                            },
-                        },
-                        series: seriest,
-                    });
-
-                    // Render Highcharts Line Chart untuk tren grup
-                    Highcharts.chart("groupMediaTrend", {
-                        chart: {
-                            type: "line",
-                        },
-                        title: {
-                            text: "Grafik Tren Group",
-                        },
-                        xAxis: {
-                            type: "datetime",
-                            title: {
-                                text: "Tanggal",
-                            },
-                        },
-                        yAxis: {
-                            title: {
-                                text: "Jumlah Artikel",
-                            },
-                        },
-                        tooltip: {
-                            formatter: function () {
-                                return (
-                                    "<b>" +
-                                    this.series.name +
-                                    "</b><br/>" +
-                                    Highcharts.dateFormat("%Y-%m-%d", this.x) +
-                                    ": " +
-                                    this.y +
-                                    " artikel"
-                                );
-                            },
-                        },
-                        plotOptions: {
-                            line: {
-                                dataLabels: {
-                                    enabled: true,
+                                title: {
+                                    text: "Grafik Tren Media Konvensional",
                                 },
-                                enableMouseTracking: true,
-                            },
-                        },
-                        series: series,
-                    });
-
-                    // Render Highcharts Bar Chart untuk tren berdasarkan type
-                    Highcharts.chart("conventionalGroupType", {
-                        chart: {
-                            type: "bar",
-                        },
-                        title: {
-                            text: "Grafik Topik Berdasarkan Source",
-                            align: "left",
-                        },
-                        xAxis: {
-                            categories: Object.keys(groupTypeCounts),
-                        },
-                        yAxis: {
-                            min: 0,
-                            title: {
-                                text: "Jumlah Artikel",
-                            },
-                        },
-                        legend: {
-                            reversed: true,
-                        },
-                        plotOptions: {
-                            series: {
-                                stacking: "normal",
-                                dataLabels: {
-                                    enabled: true,
+                                xAxis: {
+                                    type: "datetime",
+                                    title: {
+                                        text: "Tanggal",
+                                    },
                                 },
-                            },
-                        },
-                        series: groupTypeSeries,
-                    });
-
-                    // Render Highcharts Pie Chart
-                    Highcharts.chart("overallSentimentPieChart", {
-                        chart: {
-                            type: "pie",
-                        },
-                        title: {
-                            text: "Overall Sentiment Distribution",
-                        },
-                        tooltip: {
-                            pointFormat: "{series.name}: <b>{point.percentage:.1f}%</b>",
-                        },
-                        plotOptions: {
-                            pie: {
-                                allowPointSelect: true,
-                                cursor: "pointer",
-                                dataLabels: {
-                                    enabled: true,
-                                    format: "<b>{point.name}</b>: {point.percentage:.1f} %",
+                                yAxis: {
+                                    title: {
+                                        text: "Jumlah Artikel",
+                                    },
                                 },
-                            },
-                        },
-                        series: [{
-                            name: "Sentiment",
-                            colorByPoint: true,
-                            data: sentimentPieData,
-                        }, ],
-                    });
-
-                    // Render Highcharts Pie Chart Stacked
-                    Highcharts.chart("sentimentByGroupBasicChart", {
-                        chart: {
-                            type: "column",
-                        },
-                        title: {
-                            text: "Sentiment Distribution by Group",
-                        },
-                        xAxis: {
-                            categories: categories,
-                            title: {
-                                text: "Groups",
-                            },
-                        },
-                        yAxis: {
-                            min: 0,
-                            title: {
-                                text: "Sentiment Count",
-                            },
-                        },
-                        tooltip: {
-                            pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b><br/>',
-                            shared: true,
-                        },
-                        plotOptions: {
-                            column: {
-                                dataLabels: {
-                                    enabled: true,
+                                tooltip: {
+                                    formatter: function () {
+                                        return (
+                                            "<b>" +
+                                            this.series.name +
+                                            "</b><br/>" +
+                                            Highcharts.dateFormat("%Y-%m-%d", this
+                                                .x) +
+                                            ": " +
+                                            this.y +
+                                            " artikel"
+                                        );
+                                    },
                                 },
-                            },
-                        },
-                        series: seriesData,
-                    });
-                } else {
-                    alert("Error: " + response.message);
-                }
-            },
-            error: function (xhr, status, error) {
-                alert("An error occurred: " + error);
-            },
-        });
-    }
+                                plotOptions: {
+                                    line: {
+                                        dataLabels: {
+                                            enabled: true,
+                                        },
+                                        enableMouseTracking: true,
+                                    },
+                                },
+                                series: seriest,
+                            });
+                        } else {
+                            console.log("Element conventionalMediaTrend tidak ditemukan");
+                        }
 
-    function updateSentiment(selectElement, articleId) {
-        const sentiment = selectElement.value;
+                        if (document.getElementById('groupMediaTrend')) {
+                            // Render Highcharts Line Chart untuk tren grup
+                            Highcharts.chart("groupMediaTrend", {
+                                chart: {
+                                    type: "line",
+                                },
+                                title: {
+                                    text: "Grafik Tren Group",
+                                },
+                                xAxis: {
+                                    type: "datetime",
+                                    title: {
+                                        text: "Tanggal",
+                                    },
+                                },
+                                yAxis: {
+                                    title: {
+                                        text: "Jumlah Artikel",
+                                    },
+                                },
+                                tooltip: {
+                                    formatter: function () {
+                                        return (
+                                            "<b>" +
+                                            this.series.name +
+                                            "</b><br/>" +
+                                            Highcharts.dateFormat("%Y-%m-%d", this
+                                                .x) +
+                                            ": " +
+                                            this.y +
+                                            " artikel"
+                                        );
+                                    },
+                                },
+                                plotOptions: {
+                                    line: {
+                                        dataLabels: {
+                                            enabled: true,
+                                        },
+                                        enableMouseTracking: true,
+                                    },
+                                },
+                                series: series,
+                            });
+                        } else {
+                            console.log("Element groupMediaTrend tidak ditemukan");
+                        }
 
-        // Kirim AJAX request ke server
-        fetch("{{ url_for('article.index') }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
+                        if (document.getElementById('conventionalGroupType')) {
+                            // Render Highcharts Bar Chart untuk tren berdasarkan type
+                            Highcharts.chart("conventionalGroupType", {
+                                chart: {
+                                    type: "bar",
+                                },
+                                title: {
+                                    text: "Grafik Topik Berdasarkan Source",
+                                    align: "left",
+                                },
+                                xAxis: {
+                                    categories: Object.keys(groupTypeCounts),
+                                },
+                                yAxis: {
+                                    min: 0,
+                                    title: {
+                                        text: "Jumlah Artikel",
+                                    },
+                                },
+                                legend: {
+                                    reversed: true,
+                                },
+                                plotOptions: {
+                                    series: {
+                                        stacking: "normal",
+                                        dataLabels: {
+                                            enabled: true,
+                                        },
+                                    },
+                                },
+                                series: groupTypeSeries,
+                            });
+                        } else {
+                            console.log("Element conventionalGroupType tidak ditemukan");
+                        }
+
+                        // Render Highcharts Pie Chart
+                        if (document.getElementById('overallSentimentPieChart')) {
+                            Highcharts.chart("overallSentimentPieChart", {
+                                chart: {
+                                    type: "pie",
+                                },
+                                title: {
+                                    text: "Overall Sentiment Distribution",
+                                },
+                                tooltip: {
+                                    pointFormat: "{series.name}: <b>{point.percentage:.1f}%</b>",
+                                },
+                                plotOptions: {
+                                    pie: {
+                                        allowPointSelect: true,
+                                        cursor: "pointer",
+                                        dataLabels: {
+                                            enabled: true,
+                                            format: "<b>{point.name}</b>: {point.percentage:.1f} %",
+                                        },
+                                    },
+                                },
+                                series: [{
+                                    name: "Sentiment",
+                                    colorByPoint: true,
+                                    data: sentimentPieData,
+                                }, ],
+                            });
+                        } else {
+                            console.log("Element overallSentimentPieChart tidak ditemukan");
+                        }
+
+                        if (document.getElementById('sentimentByGroupBasicChart')) {
+                            // Render Highcharts Pie Chart Stacked
+                            Highcharts.chart("sentimentByGroupBasicChart", {
+                                chart: {
+                                    type: "column",
+                                },
+                                title: {
+                                    text: "Sentiment Distribution by Group",
+                                },
+                                xAxis: {
+                                    categories: categories,
+                                    title: {
+                                        text: "Groups",
+                                    },
+                                },
+                                yAxis: {
+                                    min: 0,
+                                    title: {
+                                        text: "Sentiment Count",
+                                    },
+                                },
+                                tooltip: {
+                                    pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b><br/>',
+                                    shared: true,
+                                },
+                                plotOptions: {
+                                    column: {
+                                        dataLabels: {
+                                            enabled: true,
+                                        },
+                                    },
+                                },
+                                series: seriesData,
+                            });
+                        } else {
+                            console.log("Element sentimentByGroupBasicChart tidak ditemukan");
+                        }
+
+                    } else {
+                        alert("Error: " + response.message);
+                    }
                 },
-                body: JSON.stringify({
-                    id_article: articleId,
-                    sentiment: sentiment,
-                }),
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.success) {} else {
-                    alert(`Gagal memperbarui sentimen: ${data.error || "Kesalahan tidak diketahui"}`);
+                error: function (xhr, status, error) {
+                    alert("An error occurred: " + error);
+                },
+                complete: function () {
+                    // Hide spinner
+                    $("#loading-spinner").hide();
                 }
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-                alert("Terjadi kesalahan saat memperbarui sentimen, silakan coba lagi.");
             });
-    }
-</script>
+        }
 
+        function updateSentiment(selectElement, articleId) {
+            const sentiment = selectElement.value;
+
+            // Kirim AJAX request ke server
+            fetch("{{ url_for('article.index') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        id_article: articleId,
+                        sentiment: sentiment,
+                    }),
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {} else {
+                        alert(`Gagal memperbarui sentimen: ${data.error || "Kesalahan tidak diketahui"}`);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert("Terjadi kesalahan saat memperbarui sentimen, silakan coba lagi.");
+                });
+        }
+
+        // Event listeners
+        $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
+            const daterange = picker.startDate.format('MMMM D, YYYY') + ' - ' + picker.endDate.format(
+                'MMMM D, YYYY');
+            const multiselect = $('#group').val();
+            saveFilters(daterange, multiselect);
+            getDataNews();
+        });
+
+        $('#group').on('change', function () {
+            const daterange = $('#reportrange').val();
+            const multiselect = $(this).val();
+            saveFilters(daterange, multiselect);
+            getDataNews();
+        });
+
+        // Initialize
+        initializeDatePicker();
+        loadStoredFilters();
+    });
+</script>
 
 {% endblock %}

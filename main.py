@@ -38,7 +38,7 @@ def create_app():
     def index():
         return auth_index()
 
-    @app.route("/save_filters", methods=["POST"])
+    @app.route("/savefilters", methods=["POST"])
     def save_filters():
         session["daterange"] = request.json.get("daterange")
         session["multiselect"] = request.json.get("multiselect")
@@ -50,35 +50,44 @@ def create_app():
         date_range = request.form.get("daterange")
 
         start_date_str, end_date_str = date_range.split(" - ")
-        start_date = datetime.strptime(start_date_str, "%B %d, %Y").date()
-        end_date = datetime.strptime(end_date_str, "%B %d, %Y").date()
+        try:
+            # Try Month Day, Year format
+            start_date = datetime.strptime(start_date_str, "%B %d, %Y").date()
+            end_date = datetime.strptime(end_date_str, "%B %d, %Y").date()
+        except ValueError:
+            # Try MM/DD/YYYY format
+            start_date = datetime.strptime(start_date_str, "%m/%d/%Y").date()
+            end_date = datetime.strptime(end_date_str, "%m/%d/%Y").date()
 
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cur.execute(
-            """
+        count_query = """
             SELECT COUNT(*) as count 
             FROM tb_article 
             WHERE date BETWEEN %s AND %s
-            """,
-            (start_date, end_date),
-        )
+        """
+        count_params = [start_date, end_date]
+
+        if group_names:
+            count_query += " AND n_group IN ({})".format(
+                ", ".join(["%s"] * len(group_names))
+            )
+            count_params.extend(group_names)
+
+        cur.execute(count_query, tuple(count_params))
         count_article = cur.fetchone()
         result_count_article = count_article["count"] if count_article else 0
 
-        query_params = []
+        # Main data query
+        query_params = [start_date, end_date]
         query = """
             SELECT * FROM tb_article
-            WHERE 1=1
+            WHERE date BETWEEN %s AND %s
         """
 
-        if date_range:
-            query += " AND date BETWEEN %s AND %s"
-            query_params.extend([start_date, end_date])
-
         if group_names:
-            group_placeholders = ", ".join(["%s"] * len(group_names))
-            query += f" AND n_group IN ({group_placeholders})"
+            query += " AND n_group IN ({})".format(", ".join(["%s"] * len(group_names)))
             query_params.extend(group_names)
+
         cur.execute(query, tuple(query_params))
         data_articles = cur.fetchall()
 

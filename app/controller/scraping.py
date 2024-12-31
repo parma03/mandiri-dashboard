@@ -1,4 +1,6 @@
 import logging
+import random
+import time
 from datetime import datetime
 from flask import flash, jsonify, redirect, render_template, request, url_for
 from app.config.utils import mysql, MySQLdb
@@ -15,30 +17,10 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 
-def scrape_news():
-    if request.method == "POST":
-        group = request.form.getlist("group")
-        date_range = request.form["daterange"]
-
-        start_date_str, end_date_str = date_range.split(" - ")
-        start_date = datetime.strptime(start_date_str, "%m/%d/%Y").date()
-        end_date = datetime.strptime(end_date_str, "%m/%d/%Y").date()
-
-        articles = news_scraper.scrape_news(group, start_date, end_date)
-        count_saved = len(articles)
-
-        flash(f"{count_saved} artikel berhasil disimpan ke database.", "success")
-        return redirect(url_for("scraping.index"))
-
-    return render_template("scraping/scraping.html")
-
-
 class GoogleNewsScraper:
     def __init__(self, max_workers=10, batch_size=50):
         self.base_url = "https://news.google.com/search"
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
+        self.headers = {"User-Agent": self.get_random_user_agent()}
         self.max_workers = max_workers
         self.batch_size = batch_size
         self.article_queue = queue.Queue()
@@ -47,8 +29,8 @@ class GoogleNewsScraper:
         # Configure session with retry strategy
         self.session = requests.Session()
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
+            total=5,  # Max retry attempts
+            backoff_factor=2,  # Exponential backoff
             status_forcelist=[429, 500, 502, 503, 504],
         )
         adapter = HTTPAdapter(
@@ -57,6 +39,8 @@ class GoogleNewsScraper:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
+        # Initialize cache
+        self.cache = {}
         self.setup_logger()
 
     def setup_logger(self):
@@ -80,6 +64,33 @@ class GoogleNewsScraper:
             handler.setLevel(level)
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
+
+    @staticmethod
+    def get_random_user_agent():
+        USER_AGENTS = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        ]
+        return random.choice(USER_AGENTS)
+
+    def fetch_with_cache(self, url):
+        if url in self.cache:
+            self.logger.debug(f"Cache hit for URL: {url}")
+            return self.cache[url]
+
+        self.logger.debug(f"Fetching URL: {url}")
+        try:
+            delay = random.uniform(1, 3)  # Add random delay to avoid rate limits
+            time.sleep(delay)
+            response = self.session.get(url, headers=self.headers)
+            response.raise_for_status()
+            self.cache[url] = response.text  # Cache the response
+            return response.text
+        except Exception as e:
+            self.logger.error(f"Error fetching URL {url}: {e}")
+            return None
 
     def fetch_article_content(self, url):
         try:
@@ -239,9 +250,11 @@ class GoogleNewsScraper:
                 url = f"{self.base_url}?q={query}&hl=id&gl=ID&ceid=ID%3Aid"
 
                 try:
-                    response = self.session.get(url, headers=self.headers)
-                    response.raise_for_status()
-                    soup = BeautifulSoup(response.text, "html.parser")
+                    response_text = self.fetch_with_cache(url)
+                    if not response_text:
+                        continue
+
+                    soup = BeautifulSoup(response_text, "html.parser")
                     articles = soup.find_all("article")
 
                     for article in articles:
@@ -274,24 +287,6 @@ class GoogleNewsScraper:
 
         self.logger.info(f"Completed scraping with {len(all_articles)} articles")
         return all_articles
-
-
-def scrape_news():
-    if request.method == "POST":
-        group = request.form.getlist("group")
-        date_range = request.form["daterange"]
-
-        start_date_str, end_date_str = date_range.split(" - ")
-        start_date = datetime.strptime(start_date_str, "%m/%d/%Y").date()
-        end_date = datetime.strptime(end_date_str, "%m/%d/%Y").date()
-
-        articles = news_scraper.scrape_news(group, start_date, end_date)
-        count_saved = len(articles)
-
-        flash(f"{count_saved} artikel berhasil disimpan ke database.", "success")
-        return redirect(url_for("scraping.index"))
-
-    return render_template("scraping/scraping.html")
 
 
 # Instantiate scraper with desired number of workers

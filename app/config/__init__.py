@@ -6,5 +6,4 @@ from .routes import (
     groups_bp,
     articles_bp,
     analytics_bp,
-    scraping_bp,
 )

@@ -89,17 +89,6 @@
                 <div class="text-truncate">Analytic</div>
             </a>
         </li>
-
-        <!-- Scraping Section -->
-        <li class="menu-header small text-uppercase">
-            <span class="menu-header-text">Scraping Section</span>
-        </li>
-        <li class="menu-item {% if request.endpoint == 'scraping.index' %}active{% endif %}">
-            <a href="{{ url_for('scraping.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-target-lock"></i>
-                <div class="text-truncate">Scraping</div>
-            </a>
-        </li>
     </ul>
 </aside>
 {% else %}

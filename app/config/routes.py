@@ -13,7 +13,6 @@ from app.controller.auth import auth_login, auth_logout
 from app.controller.dashboard import dashboard_index
 from app.controller.article import data_article
 from app.controller.group import group_index
-from app.controller.scraping import scrape_news
 from app.controller.user import admin_index, operator_index, viewer_index
 
 auth_bp = Blueprint("auth", __name__, template_folder="../templates")
@@ -23,7 +22,6 @@ users_bp = Blueprint("user", __name__, template_folder="../templates/user")
 groups_bp = Blueprint("group", __name__, template_folder="../templates")
 articles_bp = Blueprint("article", __name__, template_folder="../templates")
 analytics_bp = Blueprint("analytic", __name__, template_folder="../templates/analytic")
-scraping_bp = Blueprint("scraping", __name__, template_folder="../templates/scraping")
 
 
 # auth
@@ -88,14 +86,6 @@ def index():
 @is_logged_in
 def index():
     return data_analytic()
-
-
-# Scraping
-@scraping_bp.route("/", methods=["GET", "POST"])
-@is_logged_in
-@is_admin
-def index():
-    return scrape_news()
 
 
 @auth_bp.route("/logout")

@@ -1,0 +1,28 @@
+2024-12-31 10:01:51,771 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:01:51,771 - NewsAPIScraper - ERROR - Error fetching group Bank Mandiri: invalid language
+2024-12-31 10:01:51,772 - NewsAPIScraper - ERROR - Error fetching group Darmawan Junaidi: invalid language
+2024-12-31 10:01:51,772 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:01:53,226 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:01:53,227 - NewsAPIScraper - ERROR - Error fetching group Bank Mandiri: invalid language
+2024-12-31 10:01:53,228 - NewsAPIScraper - ERROR - Error fetching group Darmawan Junaidi: invalid language
+2024-12-31 10:01:53,228 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:06:35,541 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:06:37,232 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:06:40,635 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:06:43,019 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:06:45,019 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:06:46,671 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:06:51,865 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:06:53,568 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:07:01,049 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:07:02,691 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:07:07,427 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:07:08,571 - NewsAPIScraper - ERROR - Error fetching group Bank Mandiri: {'status': 'error', 'code': 'parameterInvalid', 'message': 'You are trying to request results too far in the past. Your plan permits you to request articles as far back as 2024-11-29, but you have requested 2024-11-01. You may need to upgrade to a paid plan.'}
+2024-12-31 10:07:09,721 - NewsAPIScraper - ERROR - Error fetching group Darmawan Junaidi: {'status': 'error', 'code': 'parameterInvalid', 'message': 'You are trying to request results too far in the past. Your plan permits you to request articles as far back as 2024-11-29, but you have requested 2024-11-01. You may need to upgrade to a paid plan.'}
+2024-12-31 10:07:09,722 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:07:26,348 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:07:28,009 - NewsAPIScraper - INFO - Completed fetching with 0 articles
+2024-12-31 10:07:31,635 - NewsAPIScraper - INFO - Fetching news for groups: ['Bank Mandiri', 'Darmawan Junaidi']
+2024-12-31 10:07:32,801 - NewsAPIScraper - ERROR - Error fetching group Bank Mandiri: {'status': 'error', 'code': 'parameterInvalid', 'message': 'You are trying to request results too far in the past. Your plan permits you to request articles as far back as 2024-11-29, but you have requested 2024-11-01. You may need to upgrade to a paid plan.'}
+2024-12-31 10:07:33,944 - NewsAPIScraper - ERROR - Error fetching group Darmawan Junaidi: {'status': 'error', 'code': 'parameterInvalid', 'message': 'You are trying to request results too far in the past. Your plan permits you to request articles as far back as 2024-11-29, but you have requested 2024-11-01. You may need to upgrade to a paid plan.'}
+2024-12-31 10:07:33,948 - NewsAPIScraper - INFO - Completed fetching with 0 articles

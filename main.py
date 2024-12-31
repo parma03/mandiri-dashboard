@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Flask, jsonify, request, session, redirect, url_for
+from flask import Flask, flash, jsonify, request, session, redirect, url_for
 from app.config.utils import mysql, MySQLdb
 from app.config.routes import (
     dashboard_bp,
@@ -9,9 +9,9 @@ from app.config.routes import (
     groups_bp,
     articles_bp,
     analytics_bp,
-    scraping_bp,
 )
 from app.controller.auth import auth_index
+from app.controller.scraping import news_scraper
 
 
 def create_app():
@@ -32,7 +32,6 @@ def create_app():
     app.register_blueprint(groups_bp, url_prefix="/group")
     app.register_blueprint(articles_bp, url_prefix="/article")
     app.register_blueprint(analytics_bp, url_prefix="/analytic")
-    app.register_blueprint(scraping_bp, url_prefix="/scraping")
 
     @app.route("/")
     def index():
@@ -58,6 +57,11 @@ def create_app():
             # Try MM/DD/YYYY format
             start_date = datetime.strptime(start_date_str, "%m/%d/%Y").date()
             end_date = datetime.strptime(end_date_str, "%m/%d/%Y").date()
+
+        articles = news_scraper.scrape_news(group_names, start_date, end_date)
+        count_saved = len(articles)
+
+        flash(f"{count_saved} artikel berhasil disimpan ke database.", "success")
 
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         count_query = """

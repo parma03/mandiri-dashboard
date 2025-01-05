@@ -18,7 +18,7 @@ from urllib3.util.retry import Retry
 
 
 class GoogleNewsScraper:
-    def __init__(self, max_workers=10, batch_size=50):
+    def __init__(self, max_workers=5, batch_size=50):
         self.base_url = "https://news.google.com/search"
         self.headers = {"User-Agent": self.get_random_user_agent()}
         self.max_workers = max_workers
@@ -82,11 +82,11 @@ class GoogleNewsScraper:
 
         self.logger.debug(f"Fetching URL: {url}")
         try:
-            delay = random.uniform(1, 3)  # Add random delay to avoid rate limits
+            delay = random.uniform(1, 3)
             time.sleep(delay)
             response = self.session.get(url, headers=self.headers)
             response.raise_for_status()
-            self.cache[url] = response.text  # Cache the response
+            self.cache[url] = response.text
             return response.text
         except Exception as e:
             self.logger.error(f"Error fetching URL {url}: {e}")
@@ -95,7 +95,7 @@ class GoogleNewsScraper:
     def fetch_article_content(self, url):
         try:
             self.logger.debug(f"Fetching content from: {url}")
-            decoded_url_data = new_decoderv1(url, interval=2)  # Reduced interval time
+            decoded_url_data = new_decoderv1(url, interval=2)
 
             if not decoded_url_data or "decoded_url" not in decoded_url_data:
                 return None
@@ -239,6 +239,15 @@ class GoogleNewsScraper:
 
     def scrape_news(self, group_names, start_date, end_date):
         self.logger.info(f"Starting parallel news scraping for groups: {group_names}")
+        cache_key = f"{group_names}_{start_date}_{end_date}"
+        if cache_key in self.cache:
+            self.logger.info(f"Using cached data for: {cache_key}")
+            return self.cache[cache_key]
+
+        # Proceed with scraping
+        self.logger.info(
+            f"Scraping news for groups: {group_names} within {start_date} - {end_date}"
+        )
         all_articles = []
         batch = []
 
@@ -286,8 +295,9 @@ class GoogleNewsScraper:
                 self.save_articles_batch(batch)
 
         self.logger.info(f"Completed scraping with {len(all_articles)} articles")
+        self.cache[cache_key] = all_articles
         return all_articles
 
 
 # Instantiate scraper with desired number of workers
-news_scraper = GoogleNewsScraper(max_workers=10, batch_size=50)
+news_scraper = GoogleNewsScraper(max_workers=5, batch_size=50)

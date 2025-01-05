@@ -102,6 +102,21 @@
             });
         }
 
+        function pollForUpdates(cacheKey) {
+            let pollInterval = setInterval(() => {
+                $.ajax({
+                    type: "GET",
+                    url: `/check_cache?key=${cacheKey}`,
+                    success: function (response) {
+                        if (response.status === "updated") {
+                            renderArticles(response.data_articles, response.count_article);
+                            clearInterval(pollInterval); // Stop polling
+                        }
+                    },
+                });
+            }, 5000);
+        }
+
         function getDataNews() {
             const selectedGroups = $("#group").val();
             const dateRange = $("#reportrange").val();
@@ -124,54 +139,69 @@
                     daterange: dateRange
                 },
                 success: function (response) {
-                    if (response.status === "success") {
-                        $("#article-count").text(response.count_article);
+                    renderArticles(response.data_articles, response.count_article);
 
-                        // Hapus DataTable lama jika ada
-                        if ($.fn.DataTable.isDataTable('#myTable')) {
-                            $('#myTable').DataTable().destroy();
+                    // Trigger polling for updates
+                    const cacheKey = `${selectedGroups}_${dateRange}`;
+                    pollForUpdates(cacheKey);
+                },
+                error: function (xhr, status, error) {
+                    alert("An error occurred: " + error);
+                },
+                complete: function () {
+                    loadingSpinner.hide();
+                }
+            });
+        }
+
+        function renderArticles(datas, counts) {
+            $("#article-count").text(counts);
+
+            // Hapus DataTable lama jika ada
+            if ($.fn.DataTable.isDataTable('#myTable')) {
+                $('#myTable').DataTable().destroy();
+            }
+
+            // Kosongkan tabel sebelum mengisi ulang
+            $('#myTable tbody').empty();
+            // Isi ulang tabel dengan data_articles
+            var table = $('#myTable').DataTable({
+                data: datas,
+                columns: [{
+                    data: null,
+                    render: function (data, type, row) {
+                        // Render data sesuai kebutuhan
+                        let sentimentClass =
+                            "bg-success"; // Default untuk "Positif"
+                        if (row.sentiment === "Netral") {
+                            sentimentClass = "bg-info";
+                        } else if (row.sentiment === "Negatif") {
+                            sentimentClass = "bg-danger";
                         }
 
-                        // Kosongkan tabel sebelum mengisi ulang
-                        $('#myTable tbody').empty();
-                        // Isi ulang tabel dengan data_articles
-                        var table = $('#myTable').DataTable({
-                            data: response.data_articles,
-                            columns: [{
-                                data: null,
-                                render: function (data, type, row) {
-                                    // Render data sesuai kebutuhan
-                                    let sentimentClass =
-                                        "bg-success"; // Default untuk "Positif"
-                                    if (row.sentiment === "Netral") {
-                                        sentimentClass = "bg-info";
-                                    } else if (row.sentiment === "Negatif") {
-                                        sentimentClass = "bg-danger";
-                                    }
+                        const truncateText = (text, wordLimit) => {
+                            if (!text)
+                                return ""; // Jika teks null atau undefined, kembalikan string kosong
+                            return text.split(" ").slice(0,
+                                wordLimit).join(
+                                " ") + (text.split(" ")
+                                .length >
+                                wordLimit ? "..." : "");
+                        };
 
-                                    const truncateText = (text, wordLimit) => {
-                                        if (!text)
-                                            return ""; // Jika teks null atau undefined, kembalikan string kosong
-                                        return text.split(" ").slice(0,
-                                            wordLimit).join(
-                                            " ") + (text.split(" ")
-                                            .length >
-                                            wordLimit ? "..." : "");
-                                    };
+                        const formatDate = (dateString) => {
+                            const date = new Date(dateString);
+                            const options = {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric"
+                            };
+                            return date.toLocaleDateString(
+                                "en-US",
+                                options);
+                        };
 
-                                    const formatDate = (dateString) => {
-                                        const date = new Date(dateString);
-                                        const options = {
-                                            day: "numeric",
-                                            month: "short",
-                                            year: "numeric"
-                                        };
-                                        return date.toLocaleDateString(
-                                            "en-US",
-                                            options);
-                                    };
-
-                                    return `
+                        return `
                                 <div class="d-flex row">
                                     <div class="col-sm-1 text-center text-sm-left">
                                         <div class="card-body pb-0 ps-10 text-sm-start text-center">
@@ -268,355 +298,342 @@
                                     </div>
                                 </div>
                                 `;
-                                }
-                            }]
-                        });
-                        // Proses data untuk chart
-                        var seriesData = {};
-                        var seriesDataType = {};
-                        var sentimentCounts = {};
-                        var groupSentimentData = {};
-                        var groupTypeCounts = {};
-
-                        const SENTIMENT_COLORS = {
-                            Positif: "#28a745",
-                            Netral: "#6c757d",
-                            Negatif: "#dc3545",
-                        };
-
-                        // artikel
-                        response.data_articles.forEach(function (article) {
-                            if (!seriesData[article.n_group]) {
-                                seriesData[article.n_group] = {};
-                            }
-
-                            if (!seriesData[article.n_group][article.date]) {
-                                seriesData[article.n_group][article.date] = 0;
-                            }
-
-                            if (!seriesDataType[article.type]) {
-                                seriesDataType[article.type] = {};
-                            }
-
-                            if (!seriesDataType[article.type][article.date]) {
-                                seriesDataType[article.type][article.date] = 0;
-                            }
-
-                            if (!sentimentCounts[article.sentiment]) {
-                                sentimentCounts[article.sentiment] = 0;
-                            }
-
-                            if (!groupSentimentData[article.n_group]) {
-                                groupSentimentData[article.n_group] = {
-                                    Positif: 0,
-                                    Negatif: 0,
-                                    Netral: 0,
-                                };
-                            }
-
-                            if (!groupTypeCounts[article.n_group]) {
-                                groupTypeCounts[article.n_group] = {};
-                            }
-
-                            if (!groupTypeCounts[article.n_group][article.type]) {
-                                groupTypeCounts[article.n_group][article.type] = 0;
-                            }
-
-                            seriesData[article.n_group][article.date]++;
-                            seriesDataType[article.type][article.date]++;
-                            sentimentCounts[article.sentiment]++;
-                            groupSentimentData[article.n_group][article.sentiment]++;
-                            groupTypeCounts[article.n_group][article.type]++;
-                        });
-
-                        // Konversi data article untuk Chart
-                        var series = Object.keys(seriesData).map(function (group) {
-                            var data = Object.keys(seriesData[group])
-                                .map(function (date) {
-                                    return [Date.parse(date), seriesData[group][date]];
-                                })
-                                .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
-
-                            return {
-                                name: group,
-                                data: data,
-                            };
-                        });
-
-                        var seriest = Object.keys(seriesDataType).map(function (type) {
-                            var datat = Object.keys(seriesDataType[type])
-                                .map(function (date) {
-                                    return [Date.parse(date), seriesDataType[type][
-                                        date
-                                    ]];
-                                })
-                                .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
-
-                            return {
-                                name: type,
-                                data: datat,
-                            };
-                        });
-
-                        var sentimentPieData = Object.keys(sentimentCounts).map(
-                            function (sentiment) {
-                                return {
-                                    name: sentiment,
-                                    y: sentimentCounts[sentiment],
-                                    color: SENTIMENT_COLORS[sentiment],
-                                };
-                            }
-                        );
-
-                        var grouptypes = Object.keys(seriesData);
-                        var groupTypeSeries = Object.keys(groupTypeCounts).flatMap(function (
-                            group) {
-                            return Object.keys(groupTypeCounts[group]).map(function (type) {
-                                return {
-                                    name: `${group} - ${type}`,
-                                    data: [groupTypeCounts[group][type]],
-                                };
-                            });
-                        });
-
-                        var categories = Object.keys(groupSentimentData);
-                        var seriesData = [{
-                                name: "Positif",
-                                color: SENTIMENT_COLORS["Positif"],
-                                data: categories.map((group) => groupSentimentData[group][
-                                    "Positif"
-                                ]),
-                            },
-                            {
-                                name: "Negatif",
-                                color: SENTIMENT_COLORS["Negatif"],
-                                data: categories.map((group) => groupSentimentData[group][
-                                    "Negatif"
-                                ]),
-                            },
-                            {
-                                name: "Netral",
-                                color: SENTIMENT_COLORS["Netral"],
-                                data: categories.map((group) => groupSentimentData[group][
-                                    "Netral"
-                                ]),
-                            },
-                        ];
-
-                        // Render Highcharts Line Chart untuk tren media konvensional
-                        if (document.getElementById('conventionalMediaTrend')) {
-                            Highcharts.chart("conventionalMediaTrend", {
-                                chart: {
-                                    type: "line",
-                                },
-                                title: {
-                                    text: "Grafik Tren Media Konvensional",
-                                },
-                                xAxis: {
-                                    type: "datetime",
-                                    title: {
-                                        text: "Tanggal",
-                                    },
-                                },
-                                yAxis: {
-                                    title: {
-                                        text: "Jumlah Artikel",
-                                    },
-                                },
-                                tooltip: {
-                                    formatter: function () {
-                                        return (
-                                            "<b>" +
-                                            this.series.name +
-                                            "</b><br/>" +
-                                            Highcharts.dateFormat("%Y-%m-%d", this
-                                                .x) +
-                                            ": " +
-                                            this.y +
-                                            " artikel"
-                                        );
-                                    },
-                                },
-                                plotOptions: {
-                                    line: {
-                                        dataLabels: {
-                                            enabled: true,
-                                        },
-                                        enableMouseTracking: true,
-                                    },
-                                },
-                                series: seriest,
-                            });
-                        } else {
-                            console.log("Element conventionalMediaTrend tidak ditemukan");
-                        }
-
-                        if (document.getElementById('groupMediaTrend')) {
-                            // Render Highcharts Line Chart untuk tren grup
-                            Highcharts.chart("groupMediaTrend", {
-                                chart: {
-                                    type: "line",
-                                },
-                                title: {
-                                    text: "Grafik Tren Group",
-                                },
-                                xAxis: {
-                                    type: "datetime",
-                                    title: {
-                                        text: "Tanggal",
-                                    },
-                                },
-                                yAxis: {
-                                    title: {
-                                        text: "Jumlah Artikel",
-                                    },
-                                },
-                                tooltip: {
-                                    formatter: function () {
-                                        return (
-                                            "<b>" +
-                                            this.series.name +
-                                            "</b><br/>" +
-                                            Highcharts.dateFormat("%Y-%m-%d", this
-                                                .x) +
-                                            ": " +
-                                            this.y +
-                                            " artikel"
-                                        );
-                                    },
-                                },
-                                plotOptions: {
-                                    line: {
-                                        dataLabels: {
-                                            enabled: true,
-                                        },
-                                        enableMouseTracking: true,
-                                    },
-                                },
-                                series: series,
-                            });
-                        } else {
-                            console.log("Element groupMediaTrend tidak ditemukan");
-                        }
-
-                        if (document.getElementById('conventionalGroupType')) {
-                            // Render Highcharts Bar Chart untuk tren berdasarkan type
-                            Highcharts.chart("conventionalGroupType", {
-                                chart: {
-                                    type: "bar",
-                                },
-                                title: {
-                                    text: "Grafik Topik Berdasarkan Source",
-                                    align: "left",
-                                },
-                                xAxis: {
-                                    categories: Object.keys(groupTypeCounts),
-                                },
-                                yAxis: {
-                                    min: 0,
-                                    title: {
-                                        text: "Jumlah Artikel",
-                                    },
-                                },
-                                legend: {
-                                    reversed: true,
-                                },
-                                plotOptions: {
-                                    series: {
-                                        stacking: "normal",
-                                        dataLabels: {
-                                            enabled: true,
-                                        },
-                                    },
-                                },
-                                series: groupTypeSeries,
-                            });
-                        } else {
-                            console.log("Element conventionalGroupType tidak ditemukan");
-                        }
-
-                        // Render Highcharts Pie Chart
-                        if (document.getElementById('overallSentimentPieChart')) {
-                            Highcharts.chart("overallSentimentPieChart", {
-                                chart: {
-                                    type: "pie",
-                                },
-                                title: {
-                                    text: "Overall Sentiment Distribution",
-                                },
-                                tooltip: {
-                                    pointFormat: "{series.name}: <b>{point.percentage:.1f}%</b>",
-                                },
-                                plotOptions: {
-                                    pie: {
-                                        allowPointSelect: true,
-                                        cursor: "pointer",
-                                        dataLabels: {
-                                            enabled: true,
-                                            format: "<b>{point.name}</b>: {point.percentage:.1f} %",
-                                        },
-                                    },
-                                },
-                                series: [{
-                                    name: "Sentiment",
-                                    colorByPoint: true,
-                                    data: sentimentPieData,
-                                }, ],
-                            });
-                        } else {
-                            console.log("Element overallSentimentPieChart tidak ditemukan");
-                        }
-
-                        if (document.getElementById('sentimentByGroupBasicChart')) {
-                            // Render Highcharts Pie Chart Stacked
-                            Highcharts.chart("sentimentByGroupBasicChart", {
-                                chart: {
-                                    type: "column",
-                                },
-                                title: {
-                                    text: "Sentiment Distribution by Group",
-                                },
-                                xAxis: {
-                                    categories: categories,
-                                    title: {
-                                        text: "Groups",
-                                    },
-                                },
-                                yAxis: {
-                                    min: 0,
-                                    title: {
-                                        text: "Sentiment Count",
-                                    },
-                                },
-                                tooltip: {
-                                    pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b><br/>',
-                                    shared: true,
-                                },
-                                plotOptions: {
-                                    column: {
-                                        dataLabels: {
-                                            enabled: true,
-                                        },
-                                    },
-                                },
-                                series: seriesData,
-                            });
-                        } else {
-                            console.log("Element sentimentByGroupBasicChart tidak ditemukan");
-                        }
-
-                    } else {
-                        alert("Error: " + response.message);
                     }
-                },
-                error: function (xhr, status, error) {
-                    alert("An error occurred: " + error);
-                },
-                complete: function () {
-                    // Hide spinner
-                    $("#loading-spinner").hide();
-                }
+                }]
             });
+            // Proses data untuk chart
+            var seriesData = {};
+            var seriesDataType = {};
+            var sentimentCounts = {};
+            var groupSentimentData = {};
+            var groupTypeCounts = {};
+
+            const SENTIMENT_COLORS = {
+                Positif: "#28a745",
+                Netral: "#6c757d",
+                Negatif: "#dc3545",
+            };
+
+            // artikel
+            datas.forEach(function (article) {
+                if (!seriesData[article.n_group]) {
+                    seriesData[article.n_group] = {};
+                }
+
+                if (!seriesData[article.n_group][article.date]) {
+                    seriesData[article.n_group][article.date] = 0;
+                }
+
+                if (!seriesDataType[article.type]) {
+                    seriesDataType[article.type] = {};
+                }
+
+                if (!seriesDataType[article.type][article.date]) {
+                    seriesDataType[article.type][article.date] = 0;
+                }
+
+                if (!sentimentCounts[article.sentiment]) {
+                    sentimentCounts[article.sentiment] = 0;
+                }
+
+                if (!groupSentimentData[article.n_group]) {
+                    groupSentimentData[article.n_group] = {
+                        Positif: 0,
+                        Negatif: 0,
+                        Netral: 0,
+                    };
+                }
+
+                if (!groupTypeCounts[article.n_group]) {
+                    groupTypeCounts[article.n_group] = {};
+                }
+
+                if (!groupTypeCounts[article.n_group][article.type]) {
+                    groupTypeCounts[article.n_group][article.type] = 0;
+                }
+
+                seriesData[article.n_group][article.date]++;
+                seriesDataType[article.type][article.date]++;
+                sentimentCounts[article.sentiment]++;
+                groupSentimentData[article.n_group][article.sentiment]++;
+                groupTypeCounts[article.n_group][article.type]++;
+            });
+
+            // Konversi data article untuk Chart
+            var series = Object.keys(seriesData).map(function (group) {
+                var data = Object.keys(seriesData[group])
+                    .map(function (date) {
+                        return [Date.parse(date), seriesData[group][date]];
+                    })
+                    .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
+
+                return {
+                    name: group,
+                    data: data,
+                };
+            });
+
+            var seriest = Object.keys(seriesDataType).map(function (type) {
+                var datat = Object.keys(seriesDataType[type])
+                    .map(function (date) {
+                        return [Date.parse(date), seriesDataType[type][
+                            date
+                        ]];
+                    })
+                    .sort((a, b) => a[0] - b[0]); // Urutkan berdasarkan tanggal
+
+                return {
+                    name: type,
+                    data: datat,
+                };
+            });
+
+            var sentimentPieData = Object.keys(sentimentCounts).map(
+                function (sentiment) {
+                    return {
+                        name: sentiment,
+                        y: sentimentCounts[sentiment],
+                        color: SENTIMENT_COLORS[sentiment],
+                    };
+                }
+            );
+
+            var grouptypes = Object.keys(seriesData);
+            var groupTypeSeries = Object.keys(groupTypeCounts).flatMap(function (
+                group) {
+                return Object.keys(groupTypeCounts[group]).map(function (type) {
+                    return {
+                        name: `${group} - ${type}`,
+                        data: [groupTypeCounts[group][type]],
+                    };
+                });
+            });
+
+            var categories = Object.keys(groupSentimentData);
+            var seriesData = [{
+                    name: "Positif",
+                    color: SENTIMENT_COLORS["Positif"],
+                    data: categories.map((group) => groupSentimentData[group][
+                        "Positif"
+                    ]),
+                },
+                {
+                    name: "Negatif",
+                    color: SENTIMENT_COLORS["Negatif"],
+                    data: categories.map((group) => groupSentimentData[group][
+                        "Negatif"
+                    ]),
+                },
+                {
+                    name: "Netral",
+                    color: SENTIMENT_COLORS["Netral"],
+                    data: categories.map((group) => groupSentimentData[group][
+                        "Netral"
+                    ]),
+                },
+            ];
+
+            // Render Highcharts Line Chart untuk tren media konvensional
+            if (document.getElementById('conventionalMediaTrend')) {
+                Highcharts.chart("conventionalMediaTrend", {
+                    chart: {
+                        type: "line",
+                    },
+                    title: {
+                        text: "Grafik Tren Media Konvensional",
+                    },
+                    xAxis: {
+                        type: "datetime",
+                        title: {
+                            text: "Tanggal",
+                        },
+                    },
+                    yAxis: {
+                        title: {
+                            text: "Jumlah Artikel",
+                        },
+                    },
+                    tooltip: {
+                        formatter: function () {
+                            return (
+                                "<b>" +
+                                this.series.name +
+                                "</b><br/>" +
+                                Highcharts.dateFormat("%Y-%m-%d", this
+                                    .x) +
+                                ": " +
+                                this.y +
+                                " artikel"
+                            );
+                        },
+                    },
+                    plotOptions: {
+                        line: {
+                            dataLabels: {
+                                enabled: true,
+                            },
+                            enableMouseTracking: true,
+                        },
+                    },
+                    series: seriest,
+                });
+            } else {
+                console.log("Element conventionalMediaTrend tidak ditemukan");
+            }
+
+            if (document.getElementById('groupMediaTrend')) {
+                // Render Highcharts Line Chart untuk tren grup
+                Highcharts.chart("groupMediaTrend", {
+                    chart: {
+                        type: "line",
+                    },
+                    title: {
+                        text: "Grafik Tren Group",
+                    },
+                    xAxis: {
+                        type: "datetime",
+                        title: {
+                            text: "Tanggal",
+                        },
+                    },
+                    yAxis: {
+                        title: {
+                            text: "Jumlah Artikel",
+                        },
+                    },
+                    tooltip: {
+                        formatter: function () {
+                            return (
+                                "<b>" +
+                                this.series.name +
+                                "</b><br/>" +
+                                Highcharts.dateFormat("%Y-%m-%d", this
+                                    .x) +
+                                ": " +
+                                this.y +
+                                " artikel"
+                            );
+                        },
+                    },
+                    plotOptions: {
+                        line: {
+                            dataLabels: {
+                                enabled: true,
+                            },
+                            enableMouseTracking: true,
+                        },
+                    },
+                    series: series,
+                });
+            } else {
+                console.log("Element groupMediaTrend tidak ditemukan");
+            }
+
+            if (document.getElementById('conventionalGroupType')) {
+                // Render Highcharts Bar Chart untuk tren berdasarkan type
+                Highcharts.chart("conventionalGroupType", {
+                    chart: {
+                        type: "bar",
+                    },
+                    title: {
+                        text: "Grafik Topik Berdasarkan Source",
+                        align: "left",
+                    },
+                    xAxis: {
+                        categories: Object.keys(groupTypeCounts),
+                    },
+                    yAxis: {
+                        min: 0,
+                        title: {
+                            text: "Jumlah Artikel",
+                        },
+                    },
+                    legend: {
+                        reversed: true,
+                    },
+                    plotOptions: {
+                        series: {
+                            stacking: "normal",
+                            dataLabels: {
+                                enabled: true,
+                            },
+                        },
+                    },
+                    series: groupTypeSeries,
+                });
+            } else {
+                console.log("Element conventionalGroupType tidak ditemukan");
+            }
+
+            // Render Highcharts Pie Chart
+            if (document.getElementById('overallSentimentPieChart')) {
+                Highcharts.chart("overallSentimentPieChart", {
+                    chart: {
+                        type: "pie",
+                    },
+                    title: {
+                        text: "Overall Sentiment Distribution",
+                    },
+                    tooltip: {
+                        pointFormat: "{series.name}: <b>{point.percentage:.1f}%</b>",
+                    },
+                    plotOptions: {
+                        pie: {
+                            allowPointSelect: true,
+                            cursor: "pointer",
+                            dataLabels: {
+                                enabled: true,
+                                format: "<b>{point.name}</b>: {point.percentage:.1f} %",
+                            },
+                        },
+                    },
+                    series: [{
+                        name: "Sentiment",
+                        colorByPoint: true,
+                        data: sentimentPieData,
+                    }, ],
+                });
+            } else {
+                console.log("Element overallSentimentPieChart tidak ditemukan");
+            }
+
+            if (document.getElementById('sentimentByGroupBasicChart')) {
+                // Render Highcharts Pie Chart Stacked
+                Highcharts.chart("sentimentByGroupBasicChart", {
+                    chart: {
+                        type: "column",
+                    },
+                    title: {
+                        text: "Sentiment Distribution by Group",
+                    },
+                    xAxis: {
+                        categories: categories,
+                        title: {
+                            text: "Groups",
+                        },
+                    },
+                    yAxis: {
+                        min: 0,
+                        title: {
+                            text: "Sentiment Count",
+                        },
+                    },
+                    tooltip: {
+                        pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b><br/>',
+                        shared: true,
+                    },
+                    plotOptions: {
+                        column: {
+                            dataLabels: {
+                                enabled: true,
+                            },
+                        },
+                    },
+                    series: seriesData,
+                });
+            } else {
+                console.log("Element sentimentByGroupBasicChart tidak ditemukan");
+            }
         }
 
         function updateSentiment(selectElement, articleId) {

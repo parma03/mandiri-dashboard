@@ -12,6 +12,9 @@ from app.config.routes import (
 )
 from app.controller.auth import auth_index
 from app.controller.scraping import news_scraper
+import json
+import threading
+import os
 
 
 def create_app():
@@ -32,6 +35,7 @@ def create_app():
     app.register_blueprint(groups_bp, url_prefix="/group")
     app.register_blueprint(articles_bp, url_prefix="/article")
     app.register_blueprint(analytics_bp, url_prefix="/analytic")
+    CACHE_FILE = "news_cache.json"
 
     @app.route("/")
     def index():
@@ -42,6 +46,16 @@ def create_app():
         session["daterange"] = request.json.get("daterange")
         session["multiselect"] = request.json.get("multiselect")
         return jsonify({"status": "success"})
+
+    def load_cache():
+        if os.path.exists(CACHE_FILE):
+            with open(CACHE_FILE, "r") as file:
+                return json.load(file)
+        return {}
+
+    def save_cache(data):
+        with open(CACHE_FILE, "w") as file:
+            json.dump(data, file)
 
     @app.route("/datascrape", methods=["POST"])
     def get_news():
@@ -58,10 +72,12 @@ def create_app():
             start_date = datetime.strptime(start_date_str, "%m/%d/%Y").date()
             end_date = datetime.strptime(end_date_str, "%m/%d/%Y").date()
 
-        articles = news_scraper.scrape_news(group_names, start_date, end_date)
-        count_saved = len(articles)
+        cache = load_cache()
+        cache_key = f"{group_names}_{start_date}_{end_date}"
+        cached_articles = cache.get(cache_key)
 
-        flash(f"{count_saved} artikel berhasil disimpan ke database.", "success")
+        if cached_articles:
+            return jsonify({"status": "success", **cached_articles})
 
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         count_query = """
@@ -97,13 +113,33 @@ def create_app():
 
         cur.close()
 
-        return jsonify(
-            {
-                "status": "success",
-                "count_article": result_count_article,
-                "data_articles": data_articles,
-            }
-        )
+        response = {
+            "status": "success",
+            "data_articles": data_articles,
+            "count_article": result_count_article,
+        }
+
+        # Step 3: Trigger scraping in background
+        def background_scrape():
+            with app.app_context():
+                articles = news_scraper.scrape_news(group_names, start_date, end_date)
+                count = len(articles)
+                cache[cache_key] = {"data_articles": articles, "count_article": count}
+                save_cache(cache)
+
+        threading.Thread(target=background_scrape).start()
+        return jsonify(response)
+
+    @app.route("/check_cache", methods=["GET"])
+    def check_cache():
+        try:
+            key = request.args.get("key")
+            cache = load_cache()
+            if key in cache:
+                return jsonify({"status": "updated", **cache[key]})
+            return jsonify({"status": "not_found"})
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 500
 
     @app.context_processor
     def inject_global():
